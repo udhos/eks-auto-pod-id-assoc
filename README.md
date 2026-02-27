@@ -43,7 +43,7 @@ cd eks-auto-pod-id-assoc
 Example of an ServiceAccount that causes the creation of an Association:
 
 ```yaml
-piVersion: v1
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   annotations:
