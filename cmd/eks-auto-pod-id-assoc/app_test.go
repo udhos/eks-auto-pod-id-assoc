@@ -188,6 +188,88 @@ clusters:
 
 }
 
-func RemoveServiceAccount(t *testing.T) {
+func TestRemoveServiceAccount(t *testing.T) {
+
+	const conf = `
+clusters:
+  - region: us-east-1
+    cluster_name: ^example-cluster-2$
+`
+
+	cfg, err := loadConfig([]byte(conf))
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	client := newMockClient()
+
+	app := newApplication(cfg, client)
+
+	{
+		clusterList := app.discoverClusters()
+		foundClusters := len(clusterList)
+		if foundClusters != 1 {
+			t.Fatalf("found %d clusters, expected 1", foundClusters)
+		}
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 1 {
+			t.Fatalf("found %d service accounts, expected 1", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	app.run()
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 1 {
+			t.Fatalf("after run 1: found %d service accounts, expected 1", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("after run 1: found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	// remove SA
+	{
+		cl := client.regions["us-east-1"][0]
+		cl.serviceAccounts = nil
+		client.regions["us-east-1"][0] = cl
+	}
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 0 {
+			t.Fatalf("after SA: found %d service accounts, expected 0", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("after SA: found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	app.run()
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 0 {
+			t.Fatalf("after run 2: found %d service accounts, expected 0", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 0 {
+			t.Fatalf("after run 2: found %d PIAs, expected 0", countPIAs)
+		}
+	}
 
 }
