@@ -12,6 +12,22 @@ import (
 func newMockClient() *mockClient {
 	client := &mockClient{
 		regions: map[string][]mockCluster{
+			"self": {
+				{
+					clusterName: "my-cluster",
+					serviceAccounts: []serviceAccount{
+						{Name: "sa1", Namespace: "default", AwsRoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
+					},
+					podIdentityAssociations: []podIdentityAssociation{
+						{
+							AssociationID:      "example-assoc-id-1",
+							ClusterName:        "my-cluster",
+							ServiceAccountName: "sa1",
+							RoleArn:            "arn:aws:iam::123456789012:role/sa1-role",
+						},
+					},
+				},
+			},
 			"us-east-1": {
 				{
 					clusterName: "example-cluster-2",
@@ -80,6 +96,9 @@ func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
 
 func (c *mockClient) listServiceAccounts(self bool, roleArn, region,
 	clusterName string) ([]serviceAccount, error) {
+	if self {
+		region = "self"
+	}
 	for _, cluster := range c.regions[region] {
 		if cluster.clusterName == clusterName {
 			return cluster.serviceAccounts, nil
@@ -88,8 +107,11 @@ func (c *mockClient) listServiceAccounts(self bool, roleArn, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listPodIdentityAssociations(roleArn, region,
+func (c *mockClient) listPodIdentityAssociations(self bool, roleArn, region,
 	clusterName string) ([]podIdentityAssociation, error) {
+	if self {
+		region = "self"
+	}
 	for _, cluster := range c.regions[region] {
 		if cluster.clusterName == clusterName {
 			return cluster.podIdentityAssociations, nil
@@ -98,8 +120,12 @@ func (c *mockClient) listPodIdentityAssociations(roleArn, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) createPodIdentityAssociation(roleArn, region,
+func (c *mockClient) createPodIdentityAssociation(self bool, roleArn, region,
 	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
+
+	if self {
+		region = "self"
+	}
 
 	cluster, err := c.findCluster(region, clusterName)
 	if err != nil {
@@ -147,8 +173,12 @@ func (c *mockClient) findPodIdentityAssociationByServiceAccount(cluster *mockClu
 	return podIdentityAssociation{}, errors.New("pod identity association not found")
 }
 
-func (c *mockClient) deletePodIdentityAssociation(roleArn, region,
+func (c *mockClient) deletePodIdentityAssociation(self bool, roleArn, region,
 	clusterName, associationID string) error {
+
+	if self {
+		region = "self"
+	}
 
 	cluster, err := c.findCluster(region, clusterName)
 	if err != nil {

@@ -58,7 +58,7 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 
 			for i, sa := range missingServiceAccounts {
 				label := fmt.Sprintf("%d/%d", i+1, len(missingServiceAccounts))
-				if err := a.client.createPodIdentityAssociation(cl.Config.RoleArn,
+				if err := a.client.createPodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
 					cl.Config.Region, cl.Config.ClusterName, sa.Name, sa.AwsRoleArn); err != nil {
 					errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q: %v",
 						clusterLabel, label, sa.Name, sa.AwsRoleArn, err)
@@ -78,7 +78,7 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 
 			for i, pia := range stalePIAs {
 				label := fmt.Sprintf("%d/%d", i+1, len(stalePIAs))
-				if err := a.client.deletePodIdentityAssociation(cl.Config.RoleArn,
+				if err := a.client.deletePodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
 					cl.Config.Region, pia.ClusterName, pia.AssociationID); err != nil {
 					errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q: %v",
 						clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, err)
@@ -196,7 +196,7 @@ func (a *application) discoverClusters() []cluster {
 				continue // skip this cluster
 			}
 
-			piList, err := a.client.listPodIdentityAssociations(c.RoleArn,
+			piList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
 				c.Region, clusterName)
 			if err != nil {
 				errorf("failed to list pod identity associations for cluster %s: %v",
@@ -226,13 +226,17 @@ type clientInterface interface {
 	// note that self=true requires exact clusterName provided in config as
 	// cluster_name to be used in the other methods, since the clusterName
 	// cannot be discovered.
-	listServiceAccounts(self bool, roleArn, region, clusterName string) ([]serviceAccount, error)
+	listServiceAccounts(self bool, roleArn, region,
+		clusterName string) ([]serviceAccount, error)
 
-	listPodIdentityAssociations(roleArn, region, clusterName string) ([]podIdentityAssociation, error)
+	listPodIdentityAssociations(self bool, roleArn, region,
+		clusterName string) ([]podIdentityAssociation, error)
 
-	createPodIdentityAssociation(roleArn, region, clusterName, serviceAccountName, serviceAccountRoleArn string) error
+	createPodIdentityAssociation(self bool, roleArn, region,
+		clusterName, serviceAccountName, serviceAccountRoleArn string) error
 
-	deletePodIdentityAssociation(roleArn, region, clusterName, associationID string) error
+	deletePodIdentityAssociation(self bool, roleArn, region,
+		clusterName, associationID string) error
 }
 
 type serviceAccount struct {
