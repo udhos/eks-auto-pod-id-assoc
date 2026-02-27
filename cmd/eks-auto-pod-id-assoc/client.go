@@ -199,9 +199,49 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	return piaList, nil
 }
 
-func (c *realClient) createPodIdentityAssociation(self bool, roleArn, region,
-	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
-	return errors.New("not implemented")
+func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
+	clusterName, serviceAccountNamespace, serviceAccountName, serviceAccountRoleArn string) error {
+
+	const me = "createPodIdentityAssociation"
+
+	clientEks, errEks := c.getEKSClient(roleArn, region)
+	if errEks != nil {
+		return fmt.Errorf("%s: could not get EKS client: %w", me, errEks)
+	}
+
+	input := &eks.CreatePodIdentityAssociationInput{
+		ClusterName:    aws.String(clusterName),
+		Namespace:      aws.String(serviceAccountNamespace),
+		RoleArn:        aws.String(serviceAccountRoleArn),
+		ServiceAccount: aws.String(serviceAccountName),
+	}
+
+	var resp *eks.CreatePodIdentityAssociationOutput
+	var err error
+
+	if !c.dry {
+		resp, err = clientEks.CreatePodIdentityAssociation(context.TODO(), input)
+	}
+	if err != nil {
+		return fmt.Errorf("%s: error: %w", me, err)
+	}
+
+	var associationID string
+	if c.dry {
+		associationID = "<dry>"
+	} else {
+		associationID = aws.ToString(resp.Association.AssociationId)
+	}
+
+	infof("%s: dry=%t region=%q created pod identity associations: associationId=%s cluster=%s serviceAccount=%s namespace=%s role=%s",
+		me, c.dry, region,
+		associationID,
+		clusterName,
+		serviceAccountName,
+		serviceAccountNamespace,
+		serviceAccountRoleArn)
+
+	return nil
 }
 
 func (c *realClient) deletePodIdentityAssociation(self bool, roleArn, region,

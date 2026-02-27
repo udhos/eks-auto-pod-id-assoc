@@ -58,7 +58,7 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 			for i, sa := range missingServiceAccounts {
 				label := fmt.Sprintf("%d/%d", i+1, len(missingServiceAccounts))
 				if err := a.client.createPodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
-					cl.Config.Region, cl.Config.ClusterName, sa.Name, sa.AwsRoleArn); err != nil {
+					cl.Config.Region, cl.Config.ClusterName, sa.Namespace, sa.Name, sa.AwsRoleArn); err != nil {
 					errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q: %v",
 						clusterLabel, label, sa.Name, sa.AwsRoleArn, err)
 					continue
@@ -269,7 +269,8 @@ type clientInterface interface {
 		clusterName string) ([]podIdentityAssociation, error)
 
 	createPodIdentityAssociation(self bool, roleArn, region,
-		clusterName, serviceAccountName, serviceAccountRoleArn string) error
+		clusterName, serviceAccountNamespace, serviceAccountName,
+		serviceAccountRoleArn string) error
 
 	deletePodIdentityAssociation(self bool, roleArn, region,
 		clusterName, associationID string) error

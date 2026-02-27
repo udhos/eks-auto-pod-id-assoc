@@ -414,7 +414,8 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 }
 
 func (c *mockClient) createPodIdentityAssociation(self bool, _, region,
-	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
+	clusterName, _, serviceAccountName,
+	_ string) error {
 
 	if self {
 		region = "self"
