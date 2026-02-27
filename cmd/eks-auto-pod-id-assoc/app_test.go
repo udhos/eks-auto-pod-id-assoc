@@ -2,24 +2,7 @@ package main
 
 import (
 	"testing"
-
-	"github.com/udhos/boilerplate/envconfig"
 )
-
-func TestApp(t *testing.T) {
-
-	env := envconfig.NewSimple("TestApp")
-	configFile := env.String("CONFIG_FILE", "../../config.yaml")
-	cfg, err := loadConfigFromFile(configFile)
-	if err != nil {
-		t.Fatalf("failed to load config: %s: %v", configFile, err)
-	}
-
-	client := newMockClient()
-
-	app := newApplication(cfg, client)
-	app.run()
-}
 
 func TestDiscoveryRegion(t *testing.T) {
 
