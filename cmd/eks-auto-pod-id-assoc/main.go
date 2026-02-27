@@ -2,7 +2,8 @@
 package main
 
 import (
-	"log"
+	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,9 +13,30 @@ import (
 )
 
 func main() {
+
+	//
+	// command-line
+	//
+	var showVersion bool
+	flag.BoolVar(&showVersion, "version", showVersion, "show version")
+	flag.Parse()
+
 	me := filepath.Base(os.Args[0])
-	log.Println(boilerplate.LongVersion(me))
+	infof("%s", boilerplate.LongVersion(me))
 	env := envconfig.NewSimple(me)
+
+	//
+	// version
+	//
+	{
+		v := boilerplate.LongVersion(me + " version=" + version)
+		if showVersion {
+			fmt.Print(v)
+			fmt.Println()
+			return
+		}
+		infof("%s", v)
+	}
 
 	configFile := env.String("CONFIG_FILE", "config.yaml")
 	cfg, err := loadConfigFromFile(configFile)
