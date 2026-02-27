@@ -77,6 +77,17 @@ INTERVAL | 1m | Interval between resource discovery.
 RUN_ONCE | false | If enabled, the tool executes once and exits.
 DRY | true | If enabled, the tool does NOT modify anything on AWS EKS. If disabled, the tool will create and delete Associations on AWS EKS as needed to synchronize with Service Accounts.
 
+# Permissions
+
+The tool needs these permissions on every cluster it should synchronize.
+
+Permission | Comment
+-- | --
+`eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate kubernetes credentials for the k8s API server.
+apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
+`eks:ListPodIdentityAssociations` | Discovery of existing Associations.
+`eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
+
 # Docker hub
 
 We provide some built docker images in Docker hub:
