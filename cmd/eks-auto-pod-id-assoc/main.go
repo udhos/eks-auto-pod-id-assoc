@@ -16,7 +16,7 @@ func main() {
 	env := envconfig.NewSimple(me)
 
 	configFile := env.String("CONFIG_FILE", "config.yaml")
-	cfg, err := loadConfig(configFile)
+	cfg, err := loadConfigFromFile(configFile)
 	if err != nil {
 		fatalf("failed to load config: %s: %v", configFile, err)
 	}

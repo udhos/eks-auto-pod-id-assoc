@@ -2,10 +2,10 @@
 
 clusters:
   # use a specific role to access a specific cluster
-  - role_arn: "arn:aws:iam::123456789012:role/AnotherRole"
-    region: "us-east-1"
+  - role_arn: arn:aws:iam::123456789012:role/AnotherRole
+    region: us-east-1
     cluster_name: ^example-cluster-2$ # exact cluster name
 
   # use default role and discover all clusters in the region
-  - region: "sa-east-1"
+  - region: sa-east-1
     cluster_name: ^my- # only clusters starting with "my-"

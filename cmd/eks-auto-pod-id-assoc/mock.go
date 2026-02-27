@@ -11,7 +11,7 @@ import (
 
 func newMockClient() *mockClient {
 	client := &mockClient{
-		clusters: map[string][]mockCluster{
+		regions: map[string][]mockCluster{
 			"us-east-1": {
 				{
 					clusterName: "example-cluster-2",
@@ -60,7 +60,7 @@ func newMockClient() *mockClient {
 }
 
 type mockClient struct {
-	clusters map[string][]mockCluster // region -> clusters
+	regions map[string][]mockCluster // region -> clusters
 }
 
 type mockCluster struct {
@@ -70,7 +70,7 @@ type mockCluster struct {
 }
 
 func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
-	clusters := c.clusters[region]
+	clusters := c.regions[region]
 	var clusterNames []string
 	for _, cluster := range clusters {
 		clusterNames = append(clusterNames, cluster.clusterName)
@@ -80,7 +80,7 @@ func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
 
 func (c *mockClient) listServiceAccounts(roleArn, region,
 	clusterName string) ([]serviceAccount, error) {
-	for _, cluster := range c.clusters[region] {
+	for _, cluster := range c.regions[region] {
 		if cluster.clusterName == clusterName {
 			return cluster.serviceAccounts, nil
 		}
@@ -90,7 +90,7 @@ func (c *mockClient) listServiceAccounts(roleArn, region,
 
 func (c *mockClient) listPodIdentityAssociations(roleArn, region,
 	clusterName string) ([]podIdentityAssociation, error) {
-	for _, cluster := range c.clusters[region] {
+	for _, cluster := range c.regions[region] {
 		if cluster.clusterName == clusterName {
 			return cluster.podIdentityAssociations, nil
 		}
@@ -128,10 +128,10 @@ func (c *mockClient) createPodIdentityAssociation(roleArn, region,
 }
 
 func (c *mockClient) findCluster(region, clusterName string) (*mockCluster, error) {
-	clusters := c.clusters[region]
+	clusters := c.regions[region]
 	for i, cluster := range clusters {
 		if cluster.clusterName == clusterName {
-			return &c.clusters[region][i], nil
+			return &c.regions[region][i], nil
 		}
 	}
 	return nil, errors.New("cluster not found")

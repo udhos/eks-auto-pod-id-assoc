@@ -17,7 +17,7 @@ type configCluster struct {
 	ClusterName string `yaml:"cluster_name"`
 }
 
-func loadConfig(input string) (config, error) {
+func loadConfigFromFile(input string) (config, error) {
 	data, errRead := os.ReadFile(input)
 	if errRead != nil {
 		// get current dir
@@ -28,11 +28,11 @@ func loadConfig(input string) (config, error) {
 		return config{}, fmt.Errorf("failed to read config file %s in directory %s: %w", input, cwd, errRead)
 	}
 
+	return loadConfig(data)
+}
+
+func loadConfig(data []byte) (config, error) {
 	var cfg config
 	err := yaml.Unmarshal(data, &cfg)
-	if err != nil {
-		return config{}, err
-	}
-
-	return cfg, nil
+	return cfg, err
 }
