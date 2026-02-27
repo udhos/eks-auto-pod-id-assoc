@@ -190,7 +190,7 @@ func (a *application) discoverClusters() []cluster {
 		// discover service accounts and pod identity associations for each cluster
 		for _, clusterName := range clusterNames {
 			saList, err := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
-				clusterName)
+				clusterName, c.Annotation)
 			if err != nil {
 				errorf("failed to list service accounts for cluster %s: %v",
 					clusterName, err)
@@ -228,7 +228,7 @@ type clientInterface interface {
 	// cluster_name to be used in the other methods, since the clusterName
 	// cannot be discovered.
 	listServiceAccounts(self bool, roleArn, region,
-		clusterName string) ([]serviceAccount, error)
+		clusterName, annotationKey string) ([]serviceAccount, error)
 
 	listPodIdentityAssociations(self bool, roleArn, region,
 		clusterName string) ([]podIdentityAssociation, error)

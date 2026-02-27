@@ -350,7 +350,7 @@ func (c *mockClient) listEKSClusters(_, region string) ([]string, error) {
 }
 
 func (c *mockClient) listServiceAccounts(self bool, _, region,
-	clusterName string) ([]serviceAccount, error) {
+	clusterName, annotationKey string) ([]serviceAccount, error) {
 	if self {
 		region = "self"
 	}
