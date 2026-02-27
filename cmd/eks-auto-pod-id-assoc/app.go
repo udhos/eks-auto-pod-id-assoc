@@ -24,7 +24,7 @@ func newApplication(cfg config, awsSource clientInterface) *application {
 type cluster struct {
 	Config                  configCluster            `yaml:"config"`
 	ServiceAccounts         []serviceAccount         `yaml:"service_accounts"`
-	PodIdentityAssociations []podIdentityAssociation `yaml: "pod_identity_associations"`
+	PodIdentityAssociations []podIdentityAssociation `yaml:"pod_identity_associations"`
 }
 
 func (a *application) run() {
