@@ -12,11 +12,12 @@ type config struct {
 }
 
 type configCluster struct {
-	RoleArn     string `yaml:"role_arn"`
-	Region      string `yaml:"region"`
-	ClusterName string `yaml:"cluster_name"`
-	Self        bool   `yaml:"self"`
-	Annotation  string `yaml:"annotation"`
+	RoleArn           string   `yaml:"role_arn"`
+	Region            string   `yaml:"region"`
+	ClusterName       string   `yaml:"cluster_name"`
+	Self              bool     `yaml:"self"`
+	Annotation        string   `yaml:"annotation"`
+	ExcludeNamespaces []string `yaml:"exclude_namespaces"`
 }
 
 func loadConfigFromFile(input string) (config, error) {

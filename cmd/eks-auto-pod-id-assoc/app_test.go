@@ -260,6 +260,48 @@ clusters:
 
 }
 
+func TestServiceAccountExcludeNamespace(t *testing.T) {
+	saList := []serviceAccount{
+		{
+			Namespace: "default",
+		},
+		{
+			Namespace: "kube-system",
+		},
+	}
+
+	result := serviceAccountsExcludeNamespace(saList, []string{"kube-system", "other"})
+
+	if len(result) != 1 {
+		t.Errorf("unexpected list size:%d", len(result))
+	}
+
+	if result[0].Namespace != "default" {
+		t.Errorf("unexpected namespace: %s", result[0].Namespace)
+	}
+}
+
+func TestPodIdentityAssociationExcludeNamespace(t *testing.T) {
+	pia := []podIdentityAssociation{
+		{
+			ServiceAccountNamespace: "default",
+		},
+		{
+			ServiceAccountNamespace: "kube-system",
+		},
+	}
+
+	result := podIdentityAssociationExcludeNamespace(pia, []string{"kube-system", "other"})
+
+	if len(result) != 1 {
+		t.Errorf("unexpected list size:%d", len(result))
+	}
+
+	if result[0].ServiceAccountNamespace != "default" {
+		t.Errorf("unexpected namespace: %s", result[0].ServiceAccountNamespace)
+	}
+}
+
 func newMockClient() *mockClient {
 	client := &mockClient{
 		regions: map[string][]mockCluster{
@@ -350,7 +392,7 @@ func (c *mockClient) listEKSClusters(_, region string) ([]string, error) {
 }
 
 func (c *mockClient) listServiceAccounts(self bool, _, region,
-	clusterName, annotationKey string) ([]serviceAccount, error) {
+	clusterName, _ string) ([]serviceAccount, error) {
 	if self {
 		region = "self"
 	}
@@ -428,7 +470,7 @@ func (c *mockClient) findPodIdentityAssociationByServiceAccount(cluster *mockClu
 	return podIdentityAssociation{}, errors.New("pod identity association not found")
 }
 
-func (c *mockClient) deletePodIdentityAssociation(self bool, roleArn, region,
+func (c *mockClient) deletePodIdentityAssociation(self bool, _, region,
 	clusterName, associationID string) error {
 
 	if self {

@@ -197,7 +197,7 @@ func (a *application) discoverClusters() []cluster {
 				continue // skip this cluster
 			}
 
-			piList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
+			piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
 				c.Region, clusterName)
 			if err != nil {
 				errorf("failed to list pod identity associations for cluster %s: %v",
@@ -205,18 +205,53 @@ func (a *application) discoverClusters() []cluster {
 				continue // skip this cluster
 			}
 
+			saList = serviceAccountsExcludeNamespace(saList, c.ExcludeNamespaces)
+			piaList = podIdentityAssociationExcludeNamespace(piaList, c.ExcludeNamespaces)
+
 			cc := c
 			cc.ClusterName = clusterName // discovered cluster name
 
 			clusterList = append(clusterList, cluster{
 				Config:                  cc,
 				ServiceAccounts:         saList,
-				PodIdentityAssociations: piList,
+				PodIdentityAssociations: piaList,
 			})
 		}
 	}
 
 	return clusterList
+}
+
+func serviceAccountsExcludeNamespace(list []serviceAccount, exclude []string) []serviceAccount {
+	var result []serviceAccount
+
+LOOP:
+	for _, sa := range list {
+		for _, ns := range exclude {
+			if sa.Namespace == ns {
+				continue LOOP // exclude this SA
+			}
+		}
+		result = append(result, sa) // keep this SA
+	}
+
+	return result
+}
+
+func podIdentityAssociationExcludeNamespace(list []podIdentityAssociation, exclude []string) []podIdentityAssociation {
+	var result []podIdentityAssociation
+
+LOOP:
+	for _, pia := range list {
+		for _, ns := range exclude {
+			if pia.ServiceAccountNamespace == ns {
+				continue LOOP // exclude this PIA
+			}
+		}
+		result = append(result, pia) // keep this PIA
+	}
+
+	return result
 }
 
 type clientInterface interface {
