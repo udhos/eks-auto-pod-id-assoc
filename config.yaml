@@ -12,4 +12,4 @@ clusters:
 
   # attempt to use the cluster where we are running
   - self: true
-    cluster_name: my-cluster # with self=true, put EXACT cluster name here
+    cluster_name: my-cluster # with self use EXACT cluster name (NO REGEX)
