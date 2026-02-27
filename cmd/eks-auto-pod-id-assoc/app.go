@@ -13,10 +13,10 @@ type application struct {
 	client clientInterface
 }
 
-func newApplication(cfg config, awsSource clientInterface) *application {
+func newApplication(cfg config, client clientInterface) *application {
 	app := &application{
 		cfg:    cfg,
-		client: awsSource,
+		client: client,
 	}
 	return app
 }
