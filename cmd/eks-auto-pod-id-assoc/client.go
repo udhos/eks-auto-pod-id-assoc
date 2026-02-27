@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -222,6 +221,7 @@ func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
 	if !c.dry {
 		resp, err = clientEks.CreatePodIdentityAssociation(context.TODO(), input)
 	}
+
 	if err != nil {
 		return fmt.Errorf("%s: error: %w", me, err)
 	}
@@ -244,7 +244,35 @@ func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
 	return nil
 }
 
-func (c *realClient) deletePodIdentityAssociation(self bool, roleArn, region,
+func (c *realClient) deletePodIdentityAssociation(_ bool, roleArn, region,
 	clusterName, associationID string) error {
-	return errors.New("not implemented")
+
+	const me = "deletePodIdentityAssociation"
+
+	clientEks, errEks := c.getEKSClient(roleArn, region)
+	if errEks != nil {
+		return fmt.Errorf("%s: could not get EKS client: %w", me, errEks)
+	}
+
+	input := &eks.DeletePodIdentityAssociationInput{
+		ClusterName:   aws.String(clusterName),
+		AssociationId: aws.String(associationID),
+	}
+
+	var err error
+
+	if !c.dry {
+		_, err = clientEks.DeletePodIdentityAssociation(context.TODO(), input)
+	}
+
+	if err != nil {
+		return fmt.Errorf("%s: error: %w", me, err)
+	}
+
+	infof("%s: dry=%t region=%q deleted pod identity associations: associationId=%s cluster=%s",
+		me, c.dry, region,
+		associationID,
+		clusterName)
+
+	return nil
 }
