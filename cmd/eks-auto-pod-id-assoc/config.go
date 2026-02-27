@@ -15,6 +15,7 @@ type configCluster struct {
 	RoleArn     string `yaml:"role_arn"`
 	Region      string `yaml:"region"`
 	ClusterName string `yaml:"cluster_name"`
+	Self        bool   `yaml:"self"`
 }
 
 func loadConfigFromFile(input string) (config, error) {

@@ -135,6 +135,43 @@ func (a *application) findStalePodIdentityAssociations(cl cluster) []podIdentity
 	return stale
 }
 
+func (a *application) findClusterNames(c configCluster) ([]string, error) {
+
+	if c.Self {
+		// we cannot discover our name, we need it specified exactly.
+		return []string{c.ClusterName}, nil
+	}
+
+	var clusterNames []string
+
+	// compile pattern
+	pattern, errPattern := regexp.Compile(c.ClusterName)
+	if errPattern != nil {
+		return nil, fmt.Errorf("failed to compile cluster name pattern %s: %w",
+			c.ClusterName, errPattern)
+	}
+
+	// list clusters in the region
+	names, err := a.client.listEKSClusters(c.RoleArn, c.Region)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list EKS clusters in region %s: %w",
+			c.Region, err)
+	}
+
+	// pick only matching patterns
+	for _, name := range names {
+		match := pattern.MatchString(name)
+		infof("region=%s pattern=%q cluster_name=%s matched=%t",
+			c.Region, c.ClusterName, name, match)
+		if !match {
+			continue // skip this cluster name
+		}
+		clusterNames = append(clusterNames, name)
+	}
+
+	return clusterNames, nil
+}
+
 func (a *application) discoverClusters() []cluster {
 	//
 	// discover clusters, service accounts and pod identity associations
@@ -143,38 +180,15 @@ func (a *application) discoverClusters() []cluster {
 	var clusterList []cluster
 	for _, c := range a.cfg.Clusters {
 
-		var clusterNames []string
-
-		// compile pattern
-		pattern, errPattern := regexp.Compile(c.ClusterName)
-		if errPattern != nil {
-			errorf("failed to compile cluster name pattern %s: %v",
-				c.ClusterName, errPattern)
-			continue // skip this config item
-		}
-
-		// list clusters in the region
-		names, err := a.client.listEKSClusters(c.RoleArn, c.Region)
-		if err != nil {
-			errorf("failed to list EKS clusters in region %s: %v",
-				c.Region, err)
-			continue // skip this config item
-		}
-
-		// pick only matching patterns
-		for _, name := range names {
-			match := pattern.MatchString(name)
-			infof("region=%s pattern=%q cluster_name=%s matched=%t",
-				c.Region, c.ClusterName, name, match)
-			if !match {
-				continue // skip this cluster name
-			}
-			clusterNames = append(clusterNames, name)
+		clusterNames, errNames := a.findClusterNames(c)
+		if errNames != nil {
+			errorf("%v", errNames)
+			continue // skip this cluster name
 		}
 
 		// discover service accounts and pod identity associations for each cluster
 		for _, clusterName := range clusterNames {
-			saList, err := a.client.listServiceAccounts(c.RoleArn, c.Region,
+			saList, err := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
 				clusterName)
 			if err != nil {
 				errorf("failed to list service accounts for cluster %s: %v",
@@ -206,9 +220,18 @@ func (a *application) discoverClusters() []cluster {
 
 type clientInterface interface {
 	listEKSClusters(roleArn, region string) ([]string, error)
-	listServiceAccounts(roleArn, region, clusterName string) ([]serviceAccount, error)
+
+	// listServiceAccounts with self=true uses local client configuration.
+	// with self=false, it builds client configuration for EKS using roleArn.
+	// note that self=true requires exact clusterName provided in config as
+	// cluster_name to be used in the other methods, since the clusterName
+	// cannot be discovered.
+	listServiceAccounts(self bool, roleArn, region, clusterName string) ([]serviceAccount, error)
+
 	listPodIdentityAssociations(roleArn, region, clusterName string) ([]podIdentityAssociation, error)
+
 	createPodIdentityAssociation(roleArn, region, clusterName, serviceAccountName, serviceAccountRoleArn string) error
+
 	deletePodIdentityAssociation(roleArn, region, clusterName, associationID string) error
 }
 
@@ -227,22 +250,27 @@ type podIdentityAssociation struct {
 
 type realClient struct{}
 
-func (c *realClient) listEKSClusters(roleArn, region string) ([]string, error) {
+func (c *realClient) listEKSClusters(roleArn,
+	region string) ([]string, error) {
 	return []string{}, errors.New("not implemented")
 }
 
-func (c *realClient) listServiceAccounts(roleArn, region, clusterName string) ([]serviceAccount, error) {
+func (c *realClient) listServiceAccounts(self bool, roleArn, region,
+	clusterName string) ([]serviceAccount, error) {
 	return []serviceAccount{}, errors.New("not implemented")
 }
 
-func (c *realClient) listPodIdentityAssociations(roleArn, region, clusterName string) ([]podIdentityAssociation, error) {
+func (c *realClient) listPodIdentityAssociations(roleArn, region,
+	clusterName string) ([]podIdentityAssociation, error) {
 	return []podIdentityAssociation{}, errors.New("not implemented")
 }
 
-func (c *realClient) createPodIdentityAssociation(roleArn, region, clusterName, serviceAccountName, serviceAccountRoleArn string) error {
+func (c *realClient) createPodIdentityAssociation(roleArn, region,
+	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
 	return errors.New("not implemented")
 }
 
-func (c *realClient) deletePodIdentityAssociation(roleArn, region, clusterName, associationID string) error {
+func (c *realClient) deletePodIdentityAssociation(roleArn, region,
+	clusterName, associationID string) error {
 	return errors.New("not implemented")
 }

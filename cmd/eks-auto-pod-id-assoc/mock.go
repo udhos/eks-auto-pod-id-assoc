@@ -78,7 +78,7 @@ func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
 	return clusterNames, nil
 }
 
-func (c *mockClient) listServiceAccounts(roleArn, region,
+func (c *mockClient) listServiceAccounts(self bool, roleArn, region,
 	clusterName string) ([]serviceAccount, error) {
 	for _, cluster := range c.regions[region] {
 		if cluster.clusterName == clusterName {
