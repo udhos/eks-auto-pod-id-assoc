@@ -49,6 +49,7 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 		clusterLabel := fmt.Sprintf("role=%q region=%q cluster=%q",
 			cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
 
+		// create associations for service accounts without associations
 		{
 			missingServiceAccounts := a.findMissingServiceAccounts(cl)
 
@@ -68,6 +69,7 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 			}
 		}
 
+		// delete associations for service accounts that don't exist
 		{
 			stalePIAs := a.findStalePodIdentityAssociations(cl)
 
@@ -90,11 +92,47 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 }
 
 func (a *application) findMissingServiceAccounts(cl cluster) []serviceAccount {
-	return nil
+
+	var missing []serviceAccount
+
+	for _, sa := range cl.ServiceAccounts {
+		var found bool
+
+		for _, pia := range cl.PodIdentityAssociations {
+			if sa.Name == pia.ServiceAccountName {
+				found = true // found PIA for SA
+				break
+			}
+		}
+
+		if !found {
+			missing = append(missing, sa) // add SA without PIA as missing
+		}
+	}
+
+	return missing
 }
 
 func (a *application) findStalePodIdentityAssociations(cl cluster) []podIdentityAssociation {
-	return nil
+
+	var stale []podIdentityAssociation
+
+	for _, pia := range cl.PodIdentityAssociations {
+		var found bool
+
+		for _, sa := range cl.ServiceAccounts {
+			if sa.Name == pia.ServiceAccountName {
+				found = true // found SA for PIA
+				break
+			}
+		}
+
+		if !found {
+			stale = append(stale, pia) // add PIA without SA as stale
+		}
+	}
+
+	return stale
 }
 
 func (a *application) discoverClusters() []cluster {
