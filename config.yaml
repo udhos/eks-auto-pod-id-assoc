@@ -10,6 +10,6 @@ clusters:
   - region: sa-east-1
     cluster_name: ^my- # only clusters starting with "my-"
 
-  # attempt to use the cluster where we are running
+  # use the cluster where we are running
   - self: true
     cluster_name: my-cluster # with self use EXACT cluster name (NO REGEX)
