@@ -99,7 +99,8 @@ func (a *application) findMissingServiceAccounts(cl cluster) []serviceAccount {
 		var found bool
 
 		for _, pia := range cl.PodIdentityAssociations {
-			if sa.Name == pia.ServiceAccountName {
+			if sa.Name == pia.ServiceAccountName &&
+				sa.Namespace == pia.ServiceAccountNamespace {
 				found = true // found PIA for SA
 				break
 			}
@@ -121,7 +122,8 @@ func (a *application) findStalePodIdentityAssociations(cl cluster) []podIdentity
 		var found bool
 
 		for _, sa := range cl.ServiceAccounts {
-			if sa.Name == pia.ServiceAccountName {
+			if sa.Name == pia.ServiceAccountName &&
+				sa.Namespace == pia.ServiceAccountNamespace {
 				found = true // found SA for PIA
 				break
 			}
@@ -246,10 +248,11 @@ type serviceAccount struct {
 }
 
 type podIdentityAssociation struct {
-	AssociationID      string `yaml:"association_id"`
-	ClusterName        string `yaml:"cluster_name"`
-	ServiceAccountName string `yaml:"service_account_name"`
-	RoleArn            string `yaml:"role_arn"`
+	AssociationID           string `yaml:"association_id"`
+	ClusterName             string `yaml:"cluster_name"`
+	ServiceAccountNamespace string `yaml:"service_account_namespace"`
+	ServiceAccountName      string `yaml:"service_account_name"`
+	RoleArn                 string `yaml:"role_arn"`
 }
 
 type realClient struct{}
