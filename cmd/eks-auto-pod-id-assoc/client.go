@@ -72,8 +72,12 @@ func (c *realClient) listEKSClusters(roleArn,
 func (c *realClient) getKubeClient(self bool, roleArn,
 	region, clusterName string) (*kubernetes.Clientset, error) {
 	if self {
+		// we are running in-cluster or with .kube/config
 		return kubeclient.New(kubeclient.Options{})
 	}
+
+	// do not attempt in-cluster or .kube/config,
+	// generate kube client directly from eks
 
 	clientEks, errEks := c.getEKSClient(roleArn, region)
 	if errEks != nil {
