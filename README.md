@@ -7,6 +7,15 @@
 
 [eks-auto-pod-id-assoc](https://github.com/udhos/eks-auto-pod-id-assoc) automatically synchronizes EKS Pod Identity Associations from Service Accounts.
 
+* [Building](#building)
+* [How it works](#how-it-works)
+* [Configuration file](#configuration-file)
+* [Environment variables](#environment-variables)
+* [Permissions](#permissions)
+* [Docker hub](#docker-hub)
+
+Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
+
 # Building
 
 Quick build:
