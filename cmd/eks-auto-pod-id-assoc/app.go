@@ -103,6 +103,8 @@ type clientInterface interface {
 	listEKSClusters(roleArn, region string) ([]string, error)
 	listServiceAccounts(roleArn, region, clusterName string) ([]serviceAccount, error)
 	listPodIdentityAssociations(roleArn, region, clusterName string) ([]podIdentityAssociation, error)
+	createPodIdentityAssociation(roleArn, region, clusterName, serviceAccountName, serviceAccountRoleArn string) error
+	deletePodIdentityAssociation(roleArn, region, clusterName, associationID string) error
 }
 
 type serviceAccount struct {
@@ -112,6 +114,7 @@ type serviceAccount struct {
 }
 
 type podIdentityAssociation struct {
+	AssociationID      string `yaml:"association_id"`
 	ClusterName        string `yaml:"cluster_name"`
 	ServiceAccountName string `yaml:"service_account_name"`
 	RoleArn            string `yaml:"role_arn"`
@@ -129,4 +132,12 @@ func (c *realClient) listServiceAccounts(roleArn, region, clusterName string) ([
 
 func (c *realClient) listPodIdentityAssociations(roleArn, region, clusterName string) ([]podIdentityAssociation, error) {
 	return []podIdentityAssociation{}, errors.New("not implemented")
+}
+
+func (c *realClient) createPodIdentityAssociation(roleArn, region, clusterName, serviceAccountName, serviceAccountRoleArn string) error {
+	return errors.New("not implemented")
+}
+
+func (c *realClient) deletePodIdentityAssociation(roleArn, region, clusterName, associationID string) error {
+	return errors.New("not implemented")
 }

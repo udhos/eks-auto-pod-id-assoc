@@ -1,6 +1,10 @@
 package main
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/segmentio/ksuid"
+)
 
 // This file should be moved to app_test.go, but for now we keep it here
 // in order to run it from main.go
@@ -11,14 +15,15 @@ func newMockClient() *mockClient {
 			"us-east-1": {
 				{
 					clusterName: "example-cluster-2",
-					serviceAccounts: map[string][]serviceAccount{
-						"example-cluster-2": {
-							{Name: "sa1", Namespace: "default", AwsRoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
-						},
+					serviceAccounts: []serviceAccount{
+						{Name: "sa1", Namespace: "default", AwsRoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
 					},
-					podIdentityAssociations: map[string][]podIdentityAssociation{
-						"example-cluster-2": {
-							{ClusterName: "example-cluster-2", ServiceAccountName: "sa1", RoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
+					podIdentityAssociations: []podIdentityAssociation{
+						{
+							AssociationID:      "example-assoc-id-1",
+							ClusterName:        "example-cluster-2",
+							ServiceAccountName: "sa1",
+							RoleArn:            "arn:aws:iam::123456789012:role/sa1-role",
 						},
 					},
 				},
@@ -26,16 +31,22 @@ func newMockClient() *mockClient {
 			"sa-east-1": {
 				{
 					clusterName: "my-eks-cluster",
-					serviceAccounts: map[string][]serviceAccount{
-						"my-eks-cluster": {
-							{Name: "sa1", Namespace: "default", AwsRoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
-							{Name: "sa2", Namespace: "kube-system", AwsRoleArn: "arn:aws:iam::123456789012:role/sa2-role"},
-						},
+					serviceAccounts: []serviceAccount{
+						{Name: "sa1", Namespace: "default", AwsRoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
+						{Name: "sa2", Namespace: "kube-system", AwsRoleArn: "arn:aws:iam::123456789012:role/sa2-role"},
 					},
-					podIdentityAssociations: map[string][]podIdentityAssociation{
-						"my-eks-cluster": {
-							{ClusterName: "my-eks-cluster", ServiceAccountName: "sa1", RoleArn: "arn:aws:iam::123456789012:role/sa1-role"},
-							{ClusterName: "my-eks-cluster", ServiceAccountName: "sa2", RoleArn: "arn:aws:iam::123456789012:role/sa2-role"},
+					podIdentityAssociations: []podIdentityAssociation{
+						{
+							AssociationID:      "example-assoc-id-1",
+							ClusterName:        "my-eks-cluster",
+							ServiceAccountName: "sa1",
+							RoleArn:            "arn:aws:iam::123456789012:role/sa1-role",
+						},
+						{
+							AssociationID:      "example-assoc-id-2",
+							ClusterName:        "my-eks-cluster",
+							ServiceAccountName: "sa2",
+							RoleArn:            "arn:aws:iam::123456789012:role/sa2-role",
 						},
 					},
 				},
@@ -54,8 +65,8 @@ type mockClient struct {
 
 type mockCluster struct {
 	clusterName             string
-	serviceAccounts         map[string][]serviceAccount         // cluster name -> service accounts
-	podIdentityAssociations map[string][]podIdentityAssociation // cluster name -> pod identity associations
+	serviceAccounts         []serviceAccount
+	podIdentityAssociations []podIdentityAssociation
 }
 
 func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
@@ -67,20 +78,90 @@ func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
 	return clusterNames, nil
 }
 
-func (c *mockClient) listServiceAccounts(roleArn, region, clusterName string) ([]serviceAccount, error) {
+func (c *mockClient) listServiceAccounts(roleArn, region,
+	clusterName string) ([]serviceAccount, error) {
 	for _, cluster := range c.clusters[region] {
 		if cluster.clusterName == clusterName {
-			return cluster.serviceAccounts[clusterName], nil
+			return cluster.serviceAccounts, nil
 		}
 	}
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listPodIdentityAssociations(roleArn, region, clusterName string) ([]podIdentityAssociation, error) {
+func (c *mockClient) listPodIdentityAssociations(roleArn, region,
+	clusterName string) ([]podIdentityAssociation, error) {
 	for _, cluster := range c.clusters[region] {
 		if cluster.clusterName == clusterName {
-			return cluster.podIdentityAssociations[clusterName], nil
+			return cluster.podIdentityAssociations, nil
 		}
 	}
 	return nil, errors.New("cluster not found")
+}
+
+func (c *mockClient) createPodIdentityAssociation(roleArn, region,
+	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
+
+	cluster, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return err
+	}
+
+	_, errAssoc := c.findPodIdentityAssociationByServiceAccount(cluster, serviceAccountName)
+	if errAssoc == nil {
+		return errors.New("pod identity association already exists for service account")
+	}
+
+	id := ksuid.New().String()
+
+	associationID := "assoc-" + id
+
+	newAssoc := podIdentityAssociation{
+		AssociationID:      associationID,
+		ClusterName:        clusterName,
+		ServiceAccountName: serviceAccountName,
+		RoleArn:            serviceAccountRoleArn,
+	}
+
+	cluster.podIdentityAssociations = append(cluster.podIdentityAssociations, newAssoc)
+
+	return nil
+}
+
+func (c *mockClient) findCluster(region, clusterName string) (*mockCluster, error) {
+	clusters := c.clusters[region]
+	for i, cluster := range clusters {
+		if cluster.clusterName == clusterName {
+			return &c.clusters[region][i], nil
+		}
+	}
+	return nil, errors.New("cluster not found")
+}
+
+func (c *mockClient) findPodIdentityAssociationByServiceAccount(cluster *mockCluster,
+	serviceAccountName string) (podIdentityAssociation, error) {
+	for _, assoc := range cluster.podIdentityAssociations {
+		if assoc.ServiceAccountName == serviceAccountName {
+			return assoc, nil
+		}
+	}
+	return podIdentityAssociation{}, errors.New("pod identity association not found")
+}
+
+func (c *mockClient) deletePodIdentityAssociation(roleArn, region,
+	clusterName, associationID string) error {
+
+	cluster, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return err
+	}
+
+	for i, assoc := range cluster.podIdentityAssociations {
+		if assoc.AssociationID == associationID {
+			cluster.podIdentityAssociations = append(cluster.podIdentityAssociations[:i],
+				cluster.podIdentityAssociations[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("pod identity association not found")
 }

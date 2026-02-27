@@ -3,6 +3,7 @@ module github.com/udhos/eks-auto-pod-id-assoc
 go 1.25.0
 
 require (
+	github.com/segmentio/ksuid v1.0.4
 	github.com/udhos/boilerplate v1.6.14
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 )
