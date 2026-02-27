@@ -40,7 +40,6 @@ clusters:
 	for _, clusters := range client.regions {
 		countClusters += len(clusters)
 	}
-
 	if countClusters <= 1 {
 		t.Fatalf("total_clusters=%d should be greater than 1",
 			countClusters)
@@ -58,5 +57,42 @@ clusters:
 	}
 
 	t.Logf("total_clusters=%d discovered_clusters=%d (region us-east-1)",
+		countClusters, foundClusters)
+}
+
+func TestDiscoveryClusterNameRegex(t *testing.T) {
+
+	const conf = `
+clusters:
+  - region: sa-east-1
+    cluster_name: ^my-
+`
+
+	cfg, err := loadConfig([]byte(conf))
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	client := newMockClient()
+
+	// count loaded clusters
+	countClusters := len(client.regions["sa-east-1"])
+	if countClusters <= 1 {
+		t.Fatalf("total_clusters=%d should be greater than 1 at region sa-east-1",
+			countClusters)
+	}
+
+	app := newApplication(cfg, client)
+
+	clusterList := app.discoverClusters()
+
+	foundClusters := len(clusterList)
+
+	if foundClusters != 1 {
+		t.Fatalf("total_clusters=%d discovered_clusters=%d (expecting 1 at region sa-east-1)",
+			countClusters, foundClusters)
+	}
+
+	t.Logf("total_clusters=%d discovered_clusters=%d (region sa-east-1)",
 		countClusters, foundClusters)
 }
