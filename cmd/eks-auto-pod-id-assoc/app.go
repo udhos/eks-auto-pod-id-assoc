@@ -50,39 +50,49 @@ func (a *application) discoverClusters() []cluster {
 
 		var clusterNames []string
 
-		//
-		// discover all clusters in the region
-		//
-		names, err := a.client.listEKSClusters(c.RoleArn, c.Region)
-		if err != nil {
-			fatalf("failed to list EKS clusters in region %s: %v", c.Region, err)
-		}
-
 		// compile pattern
 		pattern, errPattern := regexp.Compile(c.ClusterName)
 		if errPattern != nil {
-			fatalf("failed to compile cluster name pattern %s: %v", c.ClusterName, errPattern)
+			errorf("failed to compile cluster name pattern %s: %v",
+				c.ClusterName, errPattern)
+			continue // skip this config item
+		}
+
+		// list clusters in the region
+		names, err := a.client.listEKSClusters(c.RoleArn, c.Region)
+		if err != nil {
+			errorf("failed to list EKS clusters in region %s: %v",
+				c.Region, err)
+			continue // skip this config item
 		}
 
 		// pick only matching patterns
 		for _, name := range names {
-			if !pattern.MatchString(name) {
-				infof("skipping cluster %s in region %s: does not match pattern %s", name, c.Region, c.ClusterName)
-				continue
+			match := pattern.MatchString(name)
+			infof("region=%s pattern=%q cluster_name=%s matched=%t",
+				c.Region, c.ClusterName, name, match)
+			if !match {
+				continue // skip this cluster name
 			}
 			clusterNames = append(clusterNames, name)
 		}
 
 		// discover service accounts and pod identity associations for each cluster
 		for _, clusterName := range clusterNames {
-			saList, err := a.client.listServiceAccounts(c.RoleArn, c.Region, clusterName)
+			saList, err := a.client.listServiceAccounts(c.RoleArn, c.Region,
+				clusterName)
 			if err != nil {
-				fatalf("failed to list service accounts for cluster %s: %v", clusterName, err)
+				errorf("failed to list service accounts for cluster %s: %v",
+					clusterName, err)
+				continue // skip this cluster
 			}
 
-			piList, err := a.client.listPodIdentityAssociations(c.RoleArn, c.Region, clusterName)
+			piList, err := a.client.listPodIdentityAssociations(c.RoleArn,
+				c.Region, clusterName)
 			if err != nil {
-				fatalf("failed to list pod identity associations for cluster %s: %v", clusterName, err)
+				errorf("failed to list pod identity associations for cluster %s: %v",
+					clusterName, err)
+				continue // skip this cluster
 			}
 
 			cc := c
