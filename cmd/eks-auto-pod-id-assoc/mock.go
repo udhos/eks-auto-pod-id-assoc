@@ -89,7 +89,7 @@ type mockCluster struct {
 	podIdentityAssociations []podIdentityAssociation
 }
 
-func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
+func (c *mockClient) listEKSClusters(_, region string) ([]string, error) {
 	clusters := c.regions[region]
 	var clusterNames []string
 	for _, cluster := range clusters {
@@ -98,7 +98,7 @@ func (c *mockClient) listEKSClusters(roleArn, region string) ([]string, error) {
 	return clusterNames, nil
 }
 
-func (c *mockClient) listServiceAccounts(self bool, roleArn, region,
+func (c *mockClient) listServiceAccounts(self bool, _, region,
 	clusterName string) ([]serviceAccount, error) {
 	if self {
 		region = "self"
@@ -111,7 +111,7 @@ func (c *mockClient) listServiceAccounts(self bool, roleArn, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listPodIdentityAssociations(self bool, roleArn, region,
+func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 	clusterName string) ([]podIdentityAssociation, error) {
 	if self {
 		region = "self"
@@ -124,7 +124,7 @@ func (c *mockClient) listPodIdentityAssociations(self bool, roleArn, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) createPodIdentityAssociation(self bool, roleArn, region,
+func (c *mockClient) createPodIdentityAssociation(self bool, _, region,
 	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
 
 	if self {
