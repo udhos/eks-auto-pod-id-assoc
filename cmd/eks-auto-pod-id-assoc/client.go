@@ -159,9 +159,44 @@ func (c *realClient) listServiceAccounts(self bool, roleArn, region,
 	return result, nil
 }
 
-func (c *realClient) listPodIdentityAssociations(self bool, roleArn, region,
+func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	clusterName string) ([]podIdentityAssociation, error) {
-	return []podIdentityAssociation{}, errors.New("not implemented")
+
+	const me = "listPodIdentityAssociations"
+
+	clientEks, errEks := c.getEKSClient(roleArn, region)
+	if errEks != nil {
+		return nil, fmt.Errorf("%s: could not get EKS client: %w", me, errEks)
+	}
+
+	var maxResults int32 = 100 // 1..100
+
+	paginator := eks.NewListPodIdentityAssociationsPaginator(clientEks, &eks.ListPodIdentityAssociationsInput{
+		ClusterName: aws.String(clusterName),
+		MaxResults:  aws.Int32(maxResults),
+	})
+
+	var piaList []podIdentityAssociation
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to get page: %w", me, err)
+		}
+		for _, assoc := range page.Associations {
+			pia := podIdentityAssociation{
+				AssociationID:           aws.ToString(assoc.AssociationId),
+				ClusterName:             aws.ToString(assoc.ClusterName),
+				ServiceAccountNamespace: aws.ToString(assoc.Namespace),
+				ServiceAccountName:      aws.ToString(assoc.ServiceAccount),
+			}
+			piaList = append(piaList, pia)
+		}
+	}
+
+	infof("%s: region=%q found pod identity associations: %d", me, region, len(piaList))
+
+	return piaList, nil
 }
 
 func (c *realClient) createPodIdentityAssociation(self bool, roleArn, region,

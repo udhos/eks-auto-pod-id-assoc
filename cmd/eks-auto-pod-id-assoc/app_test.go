@@ -317,7 +317,6 @@ func newMockClient() *mockClient {
 							ClusterName:             "my-cluster",
 							ServiceAccountNamespace: "default",
 							ServiceAccountName:      "sa1",
-							RoleArn:                 "arn:aws:iam::123456789012:role/sa1-role",
 						},
 					},
 				},
@@ -334,7 +333,6 @@ func newMockClient() *mockClient {
 							ClusterName:             "example-cluster-2",
 							ServiceAccountNamespace: "default",
 							ServiceAccountName:      "sa1",
-							RoleArn:                 "arn:aws:iam::123456789012:role/sa1-role",
 						},
 					},
 				},
@@ -352,14 +350,12 @@ func newMockClient() *mockClient {
 							ClusterName:             "my-eks-cluster",
 							ServiceAccountNamespace: "default",
 							ServiceAccountName:      "sa1",
-							RoleArn:                 "arn:aws:iam::123456789012:role/sa1-role",
 						},
 						{
 							AssociationID:           "example-assoc-id-2",
 							ClusterName:             "my-eks-cluster",
 							ServiceAccountNamespace: "kube-system",
 							ServiceAccountName:      "sa2",
-							RoleArn:                 "arn:aws:iam::123456789012:role/sa2-role",
 						},
 					},
 				},
@@ -442,7 +438,6 @@ func (c *mockClient) createPodIdentityAssociation(self bool, _, region,
 		AssociationID:      associationID,
 		ClusterName:        clusterName,
 		ServiceAccountName: serviceAccountName,
-		RoleArn:            serviceAccountRoleArn,
 	}
 
 	cluster.podIdentityAssociations = append(cluster.podIdentityAssociations, newAssoc)

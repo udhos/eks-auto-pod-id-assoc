@@ -286,5 +286,4 @@ type podIdentityAssociation struct {
 	ClusterName             string `yaml:"cluster_name"`
 	ServiceAccountNamespace string `yaml:"service_account_namespace"`
 	ServiceAccountName      string `yaml:"service_account_name"`
-	RoleArn                 string `yaml:"role_arn"`
 }
