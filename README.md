@@ -1,6 +1,7 @@
 [![license](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/udhos/eks-auto-pod-id-assoc/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/udhos/eks-auto-pod-id-assoc)](https://goreportcard.com/report/github.com/udhos/eks-auto-pod-id-assoc)
 [![Go Reference](https://pkg.go.dev/badge/github.com/udhos/eks-auto-pod-id-assoc.svg)](https://pkg.go.dev/github.com/udhos/eks-auto-pod-id-assoc)
+[![Docker Pulls](https://img.shields.io/docker/pulls/udhos/eks-auto-pod-id-assoc)](https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc)
 
 # eks-auto-pod-id-assoc
 
@@ -44,7 +45,9 @@ metadata:
 
 # Configuration file
 
-The configuration file is a YAML with a list of clusters.
+The configuration file is an YAML document declaring a list of clusters.
+
+Example:
 
 ```yaml
 clusters:
