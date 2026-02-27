@@ -22,22 +22,79 @@ func newApplication(cfg config, awsSource clientInterface) *application {
 }
 
 type cluster struct {
-	Config                  configCluster
-	ServiceAccounts         []serviceAccount
-	PodIdentityAssociations []podIdentityAssociation
+	Config                  configCluster            `yaml:"config"`
+	ServiceAccounts         []serviceAccount         `yaml:"service_accounts"`
+	PodIdentityAssociations []podIdentityAssociation `yaml: "pod_identity_associations"`
 }
 
 func (a *application) run() {
 	clusterList := a.discoverClusters()
 
-	// marshal to YAML and print to stdout
-	infof("discovered cluster list:")
-	yamlBytes, err := yaml.Marshal(clusterList)
-	if err != nil {
-		fatalf("failed to marshal cluster list to YAML: %v", err)
-	}
-	fmt.Println(string(yamlBytes))
+	dumpClusters(clusterList, "discovered clusters:")
 
+	a.reconcileClusters(clusterList)
+
+	dumpClusters(clusterList, "reconciled clusters:")
+}
+
+func dumpClusters(clusterList []cluster, label string) {
+	fmt.Println(label)
+	yamlBytes, _ := yaml.Marshal(clusterList)
+	fmt.Println(string(yamlBytes))
+}
+
+func (a *application) reconcileClusters(clusterList []cluster) {
+	for _, cl := range clusterList {
+
+		clusterLabel := fmt.Sprintf("role=%q region=%q cluster=%q",
+			cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+
+		{
+			missingServiceAccounts := a.findMissingServiceAccounts(cl)
+
+			infof("%s found missing service accounts: %d",
+				clusterLabel, len(missingServiceAccounts))
+
+			for i, sa := range missingServiceAccounts {
+				label := fmt.Sprintf("%d/%d", i+1, len(missingServiceAccounts))
+				if err := a.client.createPodIdentityAssociation(cl.Config.RoleArn,
+					cl.Config.Region, cl.Config.ClusterName, sa.Name, sa.AwsRoleArn); err != nil {
+					errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q: %v",
+						clusterLabel, label, sa.Name, sa.AwsRoleArn, err)
+					continue
+				}
+				infof("%s created pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q",
+					clusterLabel, label, sa.Name, sa.AwsRoleArn)
+			}
+		}
+
+		{
+			stalePIAs := a.findStalePodIdentityAssociations(cl)
+
+			infof("%s found stale pod identity associations: %d",
+				clusterLabel, len(stalePIAs))
+
+			for i, pia := range stalePIAs {
+				label := fmt.Sprintf("%d/%d", i+1, len(stalePIAs))
+				if err := a.client.deletePodIdentityAssociation(cl.Config.RoleArn,
+					cl.Config.Region, pia.ClusterName, pia.AssociationID); err != nil {
+					errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q: %v",
+						clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, err)
+					continue
+				}
+				infof("%s deleted pod identity association %s: associationID=%q serviceAccount=%q",
+					clusterLabel, label, pia.AssociationID, pia.ServiceAccountName)
+			}
+		}
+	}
+}
+
+func (a *application) findMissingServiceAccounts(cl cluster) []serviceAccount {
+	return nil
+}
+
+func (a *application) findStalePodIdentityAssociations(cl cluster) []podIdentityAssociation {
+	return nil
 }
 
 func (a *application) discoverClusters() []cluster {
