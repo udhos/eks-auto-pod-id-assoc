@@ -233,7 +233,7 @@ func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
 		associationID = aws.ToString(resp.Association.AssociationId)
 	}
 
-	infof("%s: dry=%t region=%q created pod identity associations: associationId=%s cluster=%s serviceAccount=%s namespace=%s role=%s",
+	infof("%s: dry=%t region=%q created pod identity association: associationId=%s cluster=%s serviceAccount=%s namespace=%s role=%s",
 		me, c.dry, region,
 		associationID,
 		clusterName,
@@ -269,7 +269,7 @@ func (c *realClient) deletePodIdentityAssociation(_ bool, roleArn, region,
 		return fmt.Errorf("%s: error: %w", me, err)
 	}
 
-	infof("%s: dry=%t region=%q deleted pod identity associations: associationId=%s cluster=%s",
+	infof("%s: dry=%t region=%q deleted pod identity association: associationId=%s cluster=%s",
 		me, c.dry, region,
 		associationID,
 		clusterName)
