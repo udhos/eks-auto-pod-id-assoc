@@ -3,6 +3,8 @@ module github.com/udhos/eks-auto-pod-id-assoc
 go 1.25.0
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.41.2
+	github.com/aws/aws-sdk-go-v2/service/eks v1.80.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/udhos/boilerplate v1.6.14
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
@@ -10,7 +12,6 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.41.2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.5 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.10 // indirect

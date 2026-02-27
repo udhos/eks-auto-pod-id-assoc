@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -253,31 +252,4 @@ type podIdentityAssociation struct {
 	ServiceAccountNamespace string `yaml:"service_account_namespace"`
 	ServiceAccountName      string `yaml:"service_account_name"`
 	RoleArn                 string `yaml:"role_arn"`
-}
-
-type realClient struct{}
-
-func (c *realClient) listEKSClusters(roleArn,
-	region string) ([]string, error) {
-	return []string{}, errors.New("not implemented")
-}
-
-func (c *realClient) listServiceAccounts(self bool, roleArn, region,
-	clusterName string) ([]serviceAccount, error) {
-	return []serviceAccount{}, errors.New("not implemented")
-}
-
-func (c *realClient) listPodIdentityAssociations(roleArn, region,
-	clusterName string) ([]podIdentityAssociation, error) {
-	return []podIdentityAssociation{}, errors.New("not implemented")
-}
-
-func (c *realClient) createPodIdentityAssociation(roleArn, region,
-	clusterName, serviceAccountName, serviceAccountRoleArn string) error {
-	return errors.New("not implemented")
-}
-
-func (c *realClient) deletePodIdentityAssociation(roleArn, region,
-	clusterName, associationID string) error {
-	return errors.New("not implemented")
 }

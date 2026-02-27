@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/udhos/boilerplate/boilerplate"
 	"github.com/udhos/boilerplate/envconfig"
@@ -21,6 +22,21 @@ func main() {
 		fatalf("failed to load config: %s: %v", configFile, err)
 	}
 
-	app := newApplication(cfg, newMockClient())
-	app.run()
+	interval := env.Duration("INTERVAL", time.Minute)
+	once := env.Bool("RUN_ONCE", false)
+	dry := env.Bool("DRY", true)
+
+	app := newApplication(cfg, newRealClient(me, dry))
+
+	for {
+		app.run()
+
+		if once {
+			infof("RUN_ONCE=true, exiting")
+			break
+		}
+
+		infof("sleeping %v", interval)
+		time.Sleep(interval)
+	}
 }

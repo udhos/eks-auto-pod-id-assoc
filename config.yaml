@@ -1,15 +1,17 @@
 # Example configuration file for eks-auto-pod-id-assoc
 
 clusters:
-  # use a specific role to access a specific cluster
-  - role_arn: arn:aws:iam::123456789012:role/AnotherRole
-    region: us-east-1
-    cluster_name: ^example-cluster-2$ # exact cluster name
+  - region: us-east-1
 
-  # use default role and discover all clusters in the region
-  - region: sa-east-1
-    cluster_name: ^my- # only clusters starting with "my-"
+  # # use a specific role to access a specific cluster
+  # - role_arn: arn:aws:iam::123456789012:role/AnotherRole
+  #   region: us-east-1
+  #   cluster_name: ^example-cluster-2$ # exact cluster name
 
-  # use the cluster where we are running
-  - self: true
-    cluster_name: my-cluster # with self use EXACT cluster name (NO REGEX)
+  # # use default role and discover all clusters in the region
+  # - region: sa-east-1
+  #   cluster_name: ^my- # only clusters starting with "my-"
+
+  # # use the cluster where we are running
+  # - self: true
+  #   cluster_name: my-cluster # with self use EXACT cluster name (NO REGEX)
