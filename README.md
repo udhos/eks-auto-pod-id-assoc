@@ -110,7 +110,7 @@ Several topologies are possible. Find some examples below.
 
 ## Topology example 1: Running within single cluster
 
-There is one single EKS cluster running on region "us-east-1" and the tool running on one of its nodes.
+There is one single EKS cluster running on region "us-east-1" and the tool runs on one of its nodes.
 
 Use `self=true` to enable in-cluster behavior and set the exact cluster name with `cluster_name`.
 
