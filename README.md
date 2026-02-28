@@ -17,6 +17,7 @@
   * [Topology example 2: Running in a server with ~/\.kube/config managing one cluster](#topology-example-2-running-in-a-server-with-kubeconfig-managing-one-cluster)
   * [Topology example 3: Running in a server with AWS credentials managing multiple clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multiple-clusters)
 * [Docker hub](#docker-hub)
+* [References](#references)
 
 Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
 
@@ -169,3 +170,8 @@ clusters:
 We provide some built docker images in Docker hub:
 
 https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc
+
+# References
+
+- Create Pod Identity Associations based on annotations on ServiceAccounts
+  https://github.com/aws/containers-roadmap/issues/2291
