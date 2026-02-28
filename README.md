@@ -12,6 +12,10 @@
 * [Configuration file](#configuration-file)
 * [Environment variables](#environment-variables)
 * [Permissions](#permissions)
+* [Topologies](#topologies)
+  * [Topology example 1: Running within single cluster](#topology-example-1-running-within-single-cluster)
+  * [Topology example 2: Running in a server with ~/\.kube/config managing one cluster](#topology-example-2-running-in-a-server-with-kubeconfig-managing-one-cluster)
+  * [Topology example 3: Running in a server with AWS credentials managing multipes clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multipes-clusters)
 * [Docker hub](#docker-hub)
 
 Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
@@ -99,6 +103,61 @@ Permission | Comment
 apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
 `eks:ListPodIdentityAssociations` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
+
+# Topologies
+
+Several topologies are possible. Find some examples below.
+
+## Topology example 1: Running within single cluster
+
+There is one single EKS cluster running on region "us-east-1" and the tool running on one of its nodes.
+
+Use `self=true` to enable in-cluster behavior and set the exact cluster name with `cluster_name`.
+
+You will need to use some other method to give the POD permission to call AWS APIs in order to create/delete Associations on EKS. That's because the POD will not be able to manage its own Association.
+One option is to create the Association manually or using some Infra-as-Code like Terraform.
+
+```yaml
+clusters:
+  - region: us-east-1
+    cluster_name: my-cluster # self=true requires exact cluster name
+    self: true
+```
+
+## Topology example 2: Running in a server with ~/.kube/config managing one cluster
+
+Install the tool on a server properly configured with `~/.kube/config`.
+
+Use `self=true` to enable `~/.kube/config` and set the exact cluster name with `cluster_name`.
+
+You will need to start the tool with the proper AWS credentials to allow AWS calls to EKS APIs.
+You could use `~/.aws/config` or `AWS_PROFILE` or credentials in env vars.
+
+```yaml
+clusters:
+  - #role_arn: arn:aws:iam::123456789012:role/role1 # if AssumeRole is neeeded
+    region: us-east-1
+    cluster_name: my-cluster # self=true requires exact cluster name
+    self: true
+```
+
+## Topology example 3: Running in a server with AWS credentials managing multipes clusters
+
+Install the tool on a server. It does NOT have `~/.kube/config`.
+
+`self=false` (default) will generate credentials for k8s api server using `eks:DescribeCluster`.
+
+With `seft=false`, `cluster_name` must be set to a regex. If you want an exact match,
+anchor it like this: `cluster_name: ^my-cluster$`
+
+Run the tool with usual AWS credentials (You could use `~/.aws/config` or `AWS_PROFILE` or credentials in env vars.)
+
+```yaml
+clusters:
+  - #role_arn: arn:aws:iam::123456789012:role/AnotherRole # if AssumeRole is neeeded
+    region: us-east-1
+    cluster_name: ^my- # auto discover all clusters with name my-
+```
 
 # Docker hub
 
