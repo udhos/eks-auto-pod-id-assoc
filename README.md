@@ -15,7 +15,7 @@
 * [Topologies](#topologies)
   * [Topology example 1: Running within single cluster](#topology-example-1-running-within-single-cluster)
   * [Topology example 2: Running in a server with ~/\.kube/config managing one cluster](#topology-example-2-running-in-a-server-with-kubeconfig-managing-one-cluster)
-  * [Topology example 3: Running in a server with AWS credentials managing multipes clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multipes-clusters)
+  * [Topology example 3: Running in a server with AWS credentials managing multiple clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multiple-clusters)
 * [Docker hub](#docker-hub)
 
 Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
@@ -141,7 +141,7 @@ clusters:
     self: true
 ```
 
-## Topology example 3: Running in a server with AWS credentials managing multipes clusters
+## Topology example 3: Running in a server with AWS credentials managing multiple clusters
 
 Install the tool on a server. It does NOT have `~/.kube/config`.
 
