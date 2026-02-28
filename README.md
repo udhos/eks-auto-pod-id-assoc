@@ -135,7 +135,7 @@ You could use `~/.aws/config` or `AWS_PROFILE` or credentials in env vars.
 
 ```yaml
 clusters:
-  - #role_arn: arn:aws:iam::123456789012:role/role1 # if AssumeRole is neeeded
+  - #role_arn: arn:aws:iam::123456789012:role/role1 # if AssumeRole is needed
     region: us-east-1
     cluster_name: my-cluster # self=true requires exact cluster name
     self: true
@@ -154,9 +154,14 @@ Run the tool with usual AWS credentials (You could use `~/.aws/config` or `AWS_P
 
 ```yaml
 clusters:
-  - #role_arn: arn:aws:iam::123456789012:role/AnotherRole # if AssumeRole is neeeded
-    region: us-east-1
-    cluster_name: ^my- # auto discover all clusters with name my-
+
+- #role_arn: arn:aws:iam::123456789012:role/AnotherRole # if AssumeRole is needed
+  region: sa-east-1
+  cluster_name: ^my-cluster$ # exact cluster
+
+- #role_arn: arn:aws:iam::123456789012:role/AnotherRole # if AssumeRole is needed
+  region: us-east-1
+  cluster_name: ^my- # auto discover all clusters with name my-
 ```
 
 # Docker hub
