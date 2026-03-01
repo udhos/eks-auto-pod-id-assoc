@@ -204,7 +204,13 @@ func (a *application) discoverClusters() []cluster {
 				continue // skip this cluster
 			}
 
+			// exclude SAs according RestrictRoles
+			saList = excludeRestrictedRoles(saList, c.RestrictRoles)
+
+			// exclude SAs according exclude_service_accounts
 			saList = serviceAccountsExcludeServiceAccounts(saList, c.ExcludeServiceAccounts)
+
+			// exclude PIAs according exclude_service_accounts
 			piaList = podIdentityAssociationExcludeServiceAccounts(piaList, c.ExcludeServiceAccounts)
 
 			cc := c
@@ -219,6 +225,56 @@ func (a *application) discoverClusters() []cluster {
 	}
 
 	return clusterList
+}
+
+// findRestrictedRole finds the rule that restricts a role arn, if any.
+func findRestrictedRole(restrict []restrictRole, roleArn string) (restrictRole, bool) {
+	for _, rr := range restrict {
+		if rr.matchRole.match(roleArn) {
+			return rr, true
+		}
+	}
+	return restrictRole{}, false
+}
+
+// restrictedRoleAllowsServiceAccount checks if a restrict_roles rule allows a service account.
+func restrictedRoleAllowsServiceAccount(rr restrictRole, serviceAccountName,
+	serviceAccountNamespace string) bool {
+	for _, allow := range rr.Allow {
+		if allow.match(serviceAccountName, serviceAccountNamespace) {
+			return true
+		}
+	}
+	return false
+}
+
+// excludeRestrictedRoles returns a new slice containing only
+// the service accounts that pass the restrict_roles rules.
+func excludeRestrictedRoles(list []serviceAccount,
+	restrict []restrictRole) []serviceAccount {
+
+	var result []serviceAccount
+
+	for _, sa := range list {
+
+		// is the SA trying to use a restricted role?
+
+		rr, found := findRestrictedRole(restrict, sa.AwsRoleArn)
+		if !found {
+			// not a restricted role
+			result = append(result, sa) // keep this SA
+			continue
+		}
+
+		// restricted role
+
+		if allowed := restrictedRoleAllowsServiceAccount(rr, sa.Name,
+			sa.Namespace); allowed {
+			result = append(result, sa) // keep this SA
+		}
+	}
+
+	return result
 }
 
 // matchesExclude returns true if any of the provided exclusion patterns

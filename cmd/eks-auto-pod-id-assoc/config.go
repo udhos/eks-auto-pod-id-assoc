@@ -18,7 +18,30 @@ type configCluster struct {
 	Self                   bool                  `yaml:"self"`
 	Annotation             string                `yaml:"annotation"`
 	ExcludeServiceAccounts []matchServiceAccount `yaml:"exclude_service_accounts"`
-	RestrictRoles          map[string][]string   `yaml:"restrict_roles"`
+	RestrictRoles          []restrictRole        `yaml:"restrict_roles"`
+}
+
+type restrictRole struct {
+	RoleArn string                `yaml:"role_arn"`
+	Allow   []matchServiceAccount `yaml:"allow"`
+
+	matchRole pattern
+}
+
+func (rr *restrictRole) compile() error {
+	for i, sa := range rr.Allow {
+		if errSA := sa.compile(); errSA != nil {
+			return errSA
+		}
+		rr.Allow[i] = sa // write back
+	}
+
+	matchRole, errRole := newPattern(rr.RoleArn)
+	if errRole != nil {
+		return errRole
+	}
+	rr.matchRole = matchRole
+	return nil
 }
 
 type matchServiceAccount struct {
@@ -70,14 +93,20 @@ func loadConfig(data []byte) (config, error) {
 	}
 
 	for c, cl := range cfg.Clusters {
-		errCompile := compileServiceAccountList(cl.ExcludeServiceAccounts)
-		if errCompile != nil {
+		if errCompile := compileServiceAccountList(cl.ExcludeServiceAccounts); errCompile != nil {
 			return config{}, fmt.Errorf("exclude_service_accounts compile error: cluster=%q: %w", cl.ClusterName, errCompile)
 		}
+
+		if errCompile := compileRestrictRolesList(cl.RestrictRoles); errCompile != nil {
+			return config{}, fmt.Errorf("restrict_roles compile error: cluster=%q: %w", cl.ClusterName, errCompile)
+		}
+
 		cfg.Clusters[c] = cl // write back modified cluster
 	}
 
 	for _, cl := range cfg.Clusters {
+
+		// check exclude service accounts
 		for ex, excSa := range cl.ExcludeServiceAccounts {
 			if excSa.matchName.re == nil {
 				return config{}, fmt.Errorf("name regex is nil: exclude_service_accounts: cluster=%q index=%d name=%q",
@@ -88,9 +117,40 @@ func loadConfig(data []byte) (config, error) {
 					cl.ClusterName, ex, excSa.Namespace)
 			}
 		}
+
+		// check restricted roles
+		for _, restRol := range cl.RestrictRoles {
+
+			if restRol.matchRole.re == nil {
+				return config{}, fmt.Errorf("role_arn regex is nil: restrict_roles: cluster=%q role_arn=%q",
+					cl.ClusterName, restRol.RoleArn)
+			}
+
+			for _, srvAcc := range restRol.Allow {
+				if srvAcc.matchName.re == nil {
+					return config{}, fmt.Errorf("name regex is nil: restrict_roles: cluster=%q role_arn=%q allow sa_name=%q",
+						cl.ClusterName, restRol.RoleArn, srvAcc.Name)
+				}
+				if srvAcc.matchNamespace.re == nil {
+					return config{}, fmt.Errorf("namespace regex is nil: restrict_roles: cluster=%q role_arn=%q allow sa_namespace=%q",
+						cl.ClusterName, restRol.RoleArn, srvAcc.Namespace)
+				}
+			}
+		}
 	}
 
 	return cfg, err
+}
+
+func compileRestrictRolesList(list []restrictRole) error {
+	for rr, restRol := range list {
+		if errCompile := restRol.compile(); errCompile != nil {
+			return fmt.Errorf("compile error: restrict_roles: index=%d role_arn=%q: %w",
+				rr, restRol.RoleArn, errCompile)
+		}
+		list[rr] = restRol // write back modified restrict role
+	}
+	return nil
 }
 
 func compileServiceAccountList(list []matchServiceAccount) error {

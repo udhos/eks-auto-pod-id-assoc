@@ -354,6 +354,65 @@ func TestServiceAccountExcludePodIdentityAssociations(t *testing.T) {
 	}
 }
 
+func TestRestrictedRoles(t *testing.T) {
+
+	const input = `
+clusters:
+  - restrict_roles:
+      - role_arn: ^arn:aws:iam::123456789012:role/role1$ # only this role is restricted
+        allow:
+          # only this SA can use the role
+          - name: ^sa3$
+            namespace: ^ns3$
+`
+
+	cfg, err := loadConfig([]byte(input))
+	if err != nil {
+		t.Fatalf("load config error: %v", err)
+	}
+
+	if len(cfg.Clusters) != 1 {
+		t.Fatalf("wrong number of clusters: %d", len(cfg.Clusters))
+	}
+
+	serviceAccounts := []serviceAccount{
+		{
+			Name:       "sa1",
+			Namespace:  "ns1",
+			AwsRoleArn: "role1", // this role is not restricted
+		},
+		{
+			Name:       "sa2",
+			Namespace:  "ns2",
+			AwsRoleArn: "arn:aws:iam::123456789012:role/role1", // this role is restricted
+		},
+		{
+			Name:       "sa3",
+			Namespace:  "ns3",
+			AwsRoleArn: "arn:aws:iam::123456789012:role/role1", // this role is restricted but the SA is allowed
+		},
+	}
+
+	result := excludeRestrictedRoles(serviceAccounts, cfg.Clusters[0].RestrictRoles)
+
+	if len(result) != 2 {
+		t.Fatalf("wrong number of service accounts: %d", len(result))
+	}
+
+	if result[0].Name != "sa1" {
+		t.Fatalf("wrong SA 0 name: %s", result[0].Name)
+	}
+	if result[0].Namespace != "ns1" {
+		t.Fatalf("wrong SA 0 namespace: %s", result[0].Namespace)
+	}
+	if result[1].Name != "sa3" {
+		t.Fatalf("wrong SA 1 name: %s", result[1].Name)
+	}
+	if result[1].Namespace != "ns3" {
+		t.Fatalf("wrong SA 1 namespace: %s", result[1].Namespace)
+	}
+}
+
 func newMockClient() *mockClient {
 	client := &mockClient{
 		regions: map[string][]mockCluster{

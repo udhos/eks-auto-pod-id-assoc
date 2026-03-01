@@ -10,6 +10,7 @@ import (
 
 	"github.com/udhos/boilerplate/boilerplate"
 	"github.com/udhos/boilerplate/envconfig"
+	"go.yaml.in/yaml/v4"
 )
 
 func main() {
@@ -42,6 +43,11 @@ func main() {
 	cfg, err := loadConfigFromFile(configFile)
 	if err != nil {
 		fatalf("failed to load config: %s: %v", configFile, err)
+	}
+
+	{
+		data, _ := yaml.Marshal(cfg)
+		infof("loaded config:\n%s\n", string(data))
 	}
 
 	interval := env.Duration("INTERVAL", time.Minute)

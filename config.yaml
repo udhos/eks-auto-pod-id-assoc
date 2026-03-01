@@ -6,6 +6,16 @@ clusters:
     exclude_service_accounts:
       # exclude any service account from namespace kube-system
       - namespace: ^kube-system$
+    restrict_roles:
+      - role_arn: ^arn:aws:iam::123456789012:role/role1$
+        allow:
+          - name: ^sa3$
+            namespace: ^default$
+          - name: ^sa4$
+            namespace: ^kube-system$
+      - role_arn: ^arn:aws:iam::123456789012:role/role2$
+        allow:
+          - name: ^sa5$
 
   # # use a specific role to access a specific cluster
   # - role_arn: arn:aws:iam::123456789012:role/AnotherRole
