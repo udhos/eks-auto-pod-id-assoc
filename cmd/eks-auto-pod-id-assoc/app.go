@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -146,7 +145,7 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 	var clusterNames []string
 
 	// compile pattern
-	pattern, errPattern := regexp.Compile(c.ClusterName)
+	pattern, errPattern := newPattern(c.ClusterName)
 	if errPattern != nil {
 		return nil, fmt.Errorf("failed to compile cluster name pattern %s: %w",
 			c.ClusterName, errPattern)
@@ -161,7 +160,7 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 
 	// pick only matching patterns
 	for _, name := range names {
-		match := pattern.MatchString(name)
+		match := pattern.match(name)
 		infof("region=%s pattern=%q cluster_name=%s matched=%t",
 			c.Region, c.ClusterName, name, match)
 		if !match {

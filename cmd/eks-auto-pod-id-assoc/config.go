@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"regexp"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -26,16 +25,16 @@ type matchServiceAccount struct {
 	Name      string `yaml:"name"`
 	Namespace string `yaml:"namespace"`
 
-	matchName      *regexp.Regexp
-	matchNamespace *regexp.Regexp
+	matchName      pattern
+	matchNamespace pattern
 }
 
 func (m *matchServiceAccount) compile() error {
-	matchName, errName := regexp.Compile(m.Name)
+	matchName, errName := newPattern(m.Name)
 	if errName != nil {
 		return errName
 	}
-	matchNamespace, errNamespace := regexp.Compile(m.Namespace)
+	matchNamespace, errNamespace := newPattern(m.Namespace)
 	if errNamespace != nil {
 		return errNamespace
 	}
@@ -45,7 +44,7 @@ func (m *matchServiceAccount) compile() error {
 }
 
 func (m *matchServiceAccount) match(name, namespace string) bool {
-	return m.matchName.MatchString(name) && m.matchNamespace.MatchString(namespace)
+	return m.matchName.match(name) && m.matchNamespace.match(namespace)
 }
 
 func loadConfigFromFile(input string) (config, error) {
@@ -80,11 +79,11 @@ func loadConfig(data []byte) (config, error) {
 
 	for _, cl := range cfg.Clusters {
 		for ex, excSa := range cl.ExcludeServiceAccounts {
-			if excSa.matchName == nil {
+			if excSa.matchName.re == nil {
 				return config{}, fmt.Errorf("name regex is nil: exclude_service_accounts: cluster=%q index=%d name=%q",
 					cl.ClusterName, ex, excSa.Name)
 			}
-			if excSa.matchNamespace == nil {
+			if excSa.matchNamespace.re == nil {
 				return config{}, fmt.Errorf("namespace regex is nil: exclude_service_accounts: cluster=%q index=%d namespace=%q",
 					cl.ClusterName, ex, excSa.Namespace)
 			}

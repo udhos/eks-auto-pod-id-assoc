@@ -10,6 +10,7 @@
 * [Building](#building)
 * [How it works](#how-it-works)
 * [Configuration file](#configuration-file)
+* [Regular expressions](#regular-expressions)
 * [Environment variables](#environment-variables)
 * [Permissions](#permissions)
 * [Topologies](#topologies)
@@ -92,6 +93,42 @@ cluster_name | Regular expression for the cluster name. If you want to specify o
 self | Use `self=false` (default) when the tool must acquire kubernetes credentials directly from each targeted cluster; it will need permission to perform `eks:ListClusters` and `eks:DescribeCluster` on the clusters; this is useful when the tool does not have local credentials (like `~/.kube/config`). Set `self=true` to use local credentials (like `~/.kube/config`) instead of generating kubernetes credentials by querying `DescribeCluster`.
 annotation | The annotation used in Service Accounts that must be synced. Default is `eks.amazonaws.com/role-arn`.
 exclude_service_accounts | List of service accounts to exclude from synchronization. Fields `name` and `namespace` are regular expressions. Empty/undefined field match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the ASsociation from synchronization.
+
+# Regular expressions
+
+SYNOPSIS
+
+```yaml
+clusters:
+  - cluster_name: ^example-cluster-2$        # <--- regex (this is NOT a regex when self=true)
+    exclude_service_accounts:
+      - name: ^sa1$                          # <--- regex
+        namespace: ^default$                 # <--- regex
+    restrict_roles:
+      arn:aws:iam::123456789012:role/role1:
+        - name: ^sa3$                        # <--- regex
+          namespace: ^default$               # <--- regex
+```
+
+Some fields must be given regular expressions.
+
+The exact regex syntax is described here: https://github.com/google/re2/wiki/Syntax
+
+If you need exact match, anchor the value like this: `^example$`
+
+The field `cluster_name` is not a regex when the field `self` is set to `true`.
+
+NEGATION
+
+You can negate, or invert, a regex by prefixing it with `_` (underscore).
+
+Example:
+
+```yaml
+cluster_name: ^test # matches anything starting with 'test'
+
+cluster_name: _^test # matches anything NOT starting with 'test'
+```
 
 # Environment variables
 
