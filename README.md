@@ -70,8 +70,18 @@ clusters:
     cluster_name: ^example-cluster-2$
     self: false
     annotation: eks.amazonaws.com/role-arn
-    exclude_namespaces:
-      - kube-system
+    exclude_service_accounts:
+      - name: ^sa1$
+        namespace: ^default$
+      - namespace: ^kube-system$
+    restrict_roles:
+      arn:aws:iam::123456789012:role/role1:
+        - name: ^sa3$
+          namespace: ^default$
+        - name: ^sa4$
+          namespace: ^kube-system$
+      arn:aws:iam::123456789012:role/role2:
+        - name: ^sa5$
 ```
 
 field | description
@@ -81,7 +91,7 @@ region | The region to make AWS API calls.
 cluster_name | Regular expression for the cluster name. If you want to specify one specific cluster, anchor it like this: `^my-cluster$`. An empty/undefined `cluster_name` will match ALL clusters in the region. NOTICE: When `self=true`, cluster_name is no longer a regex and must be specified as an exact cluster name.
 self | Use `self=false` (default) when the tool must acquire kubernetes credentials directly from each targeted cluster; it will need permission to perform `eks:ListClusters` and `eks:DescribeCluster` on the clusters; this is useful when the tool does not have local credentials (like `~/.kube/config`). Set `self=true` to use local credentials (like `~/.kube/config`) instead of generating kubernetes credentials by querying `DescribeCluster`.
 annotation | The annotation used in Service Accounts that must be synced. Default is `eks.amazonaws.com/role-arn`.
-exclude_namespaces | List of namespaces to exclude from synchronization.
+exclude_service_accounts | List of service accounts to exclude from synchronization. Fields `name` and `namespace` are regular expressions. Empty/undefined field match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the ASsociation from synchronization.
 
 # Environment variables
 

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -12,12 +13,39 @@ type config struct {
 }
 
 type configCluster struct {
-	RoleArn           string   `yaml:"role_arn"`
-	Region            string   `yaml:"region"`
-	ClusterName       string   `yaml:"cluster_name"`
-	Self              bool     `yaml:"self"`
-	Annotation        string   `yaml:"annotation"`
-	ExcludeNamespaces []string `yaml:"exclude_namespaces"`
+	RoleArn                string                `yaml:"role_arn"`
+	Region                 string                `yaml:"region"`
+	ClusterName            string                `yaml:"cluster_name"`
+	Self                   bool                  `yaml:"self"`
+	Annotation             string                `yaml:"annotation"`
+	ExcludeServiceAccounts []matchServiceAccount `yaml:"exclude_service_accounts"`
+	RestrictRoles          map[string][]string   `yaml:"restrict_roles"`
+}
+
+type matchServiceAccount struct {
+	Name      string `yaml:"name"`
+	Namespace string `yaml:"namespace"`
+
+	matchName      *regexp.Regexp
+	matchNamespace *regexp.Regexp
+}
+
+func (m *matchServiceAccount) compile() error {
+	matchName, errName := regexp.Compile(m.Name)
+	if errName != nil {
+		return errName
+	}
+	matchNamespace, errNamespace := regexp.Compile(m.Namespace)
+	if errNamespace != nil {
+		return errNamespace
+	}
+	m.matchName = matchName
+	m.matchNamespace = matchNamespace
+	return nil
+}
+
+func (m *matchServiceAccount) match(name, namespace string) bool {
+	return m.matchName.MatchString(name) && m.matchNamespace.MatchString(namespace)
 }
 
 func loadConfigFromFile(input string) (config, error) {
@@ -36,6 +64,43 @@ func loadConfigFromFile(input string) (config, error) {
 
 func loadConfig(data []byte) (config, error) {
 	var cfg config
+
 	err := yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		return config{}, err
+	}
+
+	for c, cl := range cfg.Clusters {
+		errCompile := compileServiceAccountList(cl.ExcludeServiceAccounts)
+		if errCompile != nil {
+			return config{}, fmt.Errorf("exclude_service_accounts compile error: cluster=%q: %w", cl.ClusterName, errCompile)
+		}
+		cfg.Clusters[c] = cl // write back modified cluster
+	}
+
+	for _, cl := range cfg.Clusters {
+		for ex, excSa := range cl.ExcludeServiceAccounts {
+			if excSa.matchName == nil {
+				return config{}, fmt.Errorf("name regex is nil: exclude_service_accounts: cluster=%q index=%d name=%q",
+					cl.ClusterName, ex, excSa.Name)
+			}
+			if excSa.matchNamespace == nil {
+				return config{}, fmt.Errorf("namespace regex is nil: exclude_service_accounts: cluster=%q index=%d namespace=%q",
+					cl.ClusterName, ex, excSa.Namespace)
+			}
+		}
+	}
+
 	return cfg, err
+}
+
+func compileServiceAccountList(list []matchServiceAccount) error {
+	for ex, excSa := range list {
+		if errCompile := excSa.compile(); errCompile != nil {
+			return fmt.Errorf("compile error: exclude_service_accounts: index=%d name=%q namespace=%q: %w",
+				ex, excSa.Name, excSa.Namespace, errCompile)
+		}
+		list[ex] = excSa // write back modified sa
+	}
+	return nil
 }

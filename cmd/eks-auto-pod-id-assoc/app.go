@@ -205,8 +205,8 @@ func (a *application) discoverClusters() []cluster {
 				continue // skip this cluster
 			}
 
-			saList = serviceAccountsExcludeNamespace(saList, c.ExcludeNamespaces)
-			piaList = podIdentityAssociationExcludeNamespace(piaList, c.ExcludeNamespaces)
+			saList = serviceAccountsExcludeServiceAccounts(saList, c.ExcludeServiceAccounts)
+			piaList = podIdentityAssociationExcludeServiceAccounts(piaList, c.ExcludeServiceAccounts)
 
 			cc := c
 			cc.ClusterName = clusterName // discovered cluster name
@@ -245,6 +245,38 @@ LOOP:
 	for _, pia := range list {
 		for _, ns := range exclude {
 			if pia.ServiceAccountNamespace == ns {
+				continue LOOP // exclude this PIA
+			}
+		}
+		result = append(result, pia) // keep this PIA
+	}
+
+	return result
+}
+
+func serviceAccountsExcludeServiceAccounts(list []serviceAccount, exclude []matchServiceAccount) []serviceAccount {
+	var result []serviceAccount
+
+LOOP:
+	for _, sa := range list {
+		for _, ex := range exclude {
+			if ex.match(sa.Name, sa.Namespace) {
+				continue LOOP // exclude this SA
+			}
+		}
+		result = append(result, sa) // keep this SA
+	}
+
+	return result
+}
+
+func podIdentityAssociationExcludeServiceAccounts(list []podIdentityAssociation, exclude []matchServiceAccount) []podIdentityAssociation {
+	var result []podIdentityAssociation
+
+LOOP:
+	for _, pia := range list {
+		for _, ex := range exclude {
+			if ex.match(pia.ServiceAccountName, pia.ServiceAccountNamespace) {
 				continue LOOP // exclude this PIA
 			}
 		}

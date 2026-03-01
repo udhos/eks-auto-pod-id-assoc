@@ -3,8 +3,9 @@
 clusters:
   - region: us-east-1
     annotation: eks.amazonaws.com/role-arn
-    exclude_namespaces:
-      - kube-system
+    exclude_service_accounts:
+      # exclude any service account from namespace kube-system
+      - namespace: ^kube-system$
 
   # # use a specific role to access a specific cluster
   # - role_arn: arn:aws:iam::123456789012:role/AnotherRole

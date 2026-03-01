@@ -260,45 +260,97 @@ clusters:
 
 }
 
-func TestServiceAccountExcludeNamespace(t *testing.T) {
+func TestServiceAccountExcludeServiceAccounts(t *testing.T) {
 	saList := []serviceAccount{
 		{
+			Name:      "sa1",
 			Namespace: "default",
 		},
 		{
-			Namespace: "kube-system",
+			Name:      "sa2",
+			Namespace: "ns1",
+		},
+		{
+			Name:      "sa2",
+			Namespace: "ns2",
+		},
+		{
+			Name: "sa3",
 		},
 	}
 
-	result := serviceAccountsExcludeNamespace(saList, []string{"kube-system", "other"})
+	exclude := []matchServiceAccount{
+		{
+			Name: "^sa1$",
+		},
+		{
+			Namespace: "^ns1$",
+		},
+		{
+			Name:      "^sa2$",
+			Namespace: "^ns2$",
+		},
+	}
+
+	if errCompile := compileServiceAccountList(exclude); errCompile != nil {
+		t.Fatalf("compile: %v", errCompile)
+	}
+
+	result := serviceAccountsExcludeServiceAccounts(saList, exclude)
 
 	if len(result) != 1 {
 		t.Errorf("unexpected list size:%d", len(result))
 	}
 
-	if result[0].Namespace != "default" {
+	if result[0].Name != "sa3" {
 		t.Errorf("unexpected namespace: %s", result[0].Namespace)
 	}
 }
 
-func TestPodIdentityAssociationExcludeNamespace(t *testing.T) {
-	pia := []podIdentityAssociation{
+func TestServiceAccountExcludePodIdentityAssociations(t *testing.T) {
+	saList := []podIdentityAssociation{
 		{
+			ServiceAccountName:      "sa1",
 			ServiceAccountNamespace: "default",
 		},
 		{
-			ServiceAccountNamespace: "kube-system",
+			ServiceAccountName:      "sa2",
+			ServiceAccountNamespace: "ns1",
+		},
+		{
+			ServiceAccountName:      "sa2",
+			ServiceAccountNamespace: "ns2",
+		},
+		{
+			ServiceAccountName: "sa3",
 		},
 	}
 
-	result := podIdentityAssociationExcludeNamespace(pia, []string{"kube-system", "other"})
+	exclude := []matchServiceAccount{
+		{
+			Name: "^sa1$",
+		},
+		{
+			Namespace: "^ns1$",
+		},
+		{
+			Name:      "^sa2$",
+			Namespace: "^ns2$",
+		},
+	}
+
+	if errCompile := compileServiceAccountList(exclude); errCompile != nil {
+		t.Fatalf("compile: %v", errCompile)
+	}
+
+	result := podIdentityAssociationExcludeServiceAccounts(saList, exclude)
 
 	if len(result) != 1 {
 		t.Errorf("unexpected list size:%d", len(result))
 	}
 
-	if result[0].ServiceAccountNamespace != "default" {
-		t.Errorf("unexpected namespace: %s", result[0].ServiceAccountNamespace)
+	if result[0].ServiceAccountName != "sa3" {
+		t.Errorf("unexpected namespace: %s", result[0].ServiceAccountName)
 	}
 }
 
