@@ -116,13 +116,13 @@ clusters:
 
 Some fields must be given regular expressions.
 
-The exact regex syntax is described here: https://github.com/google/re2/wiki/Syntax
+The full regex syntax is described here: https://github.com/google/re2/wiki/Syntax
 
 If you need exact match, anchor the value like this: `^example$`
 
 The field `cluster_name` is not a regex when the field `self` is set to `true`.
 
-NEGATION
+**NEGATION**
 
 You can negate, or invert, a regex by prefixing it with `_` (underscore).
 
@@ -132,6 +132,22 @@ Example:
 cluster_name: ^test # matches anything starting with 'test'
 
 cluster_name: _^test # matches anything NOT starting with 'test'
+```
+
+**EMPTY EXPRESSIONS**
+
+Empty expressions match *anything*. See some examples below.
+
+```yaml
+#namespace: ""  # if you omit a regex field, it becomes empty, so it matches anything
+
+namespace: ""   # an empty regex field matches anything
+
+namespace: _    # this negates the empty regex, thus it matches NOTHING
+
+namespace: ^$   # this matches only the empty namespace, impossible in kubernetes), so it matches NOTHING
+
+namespace: _^$  # negates the previous rule, so it matches anything
 ```
 
 # Environment variables
