@@ -7,7 +7,7 @@
 
 [eks-auto-pod-id-assoc](https://github.com/udhos/eks-auto-pod-id-assoc) automatically synchronizes EKS Pod Identity Associations from Service Accounts.
 
-* [Building](#building)
+* [Building and running](#building-and-running)
 * [How it works](#how-it-works)
 * [Configuration file](#configuration-file)
 * [Regular expressions](#regular-expressions)
@@ -20,9 +20,7 @@
 * [Docker hub](#docker-hub)
 * [References](#references)
 
-Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
-
-# Building
+# Building and running
 
 Quick build:
 
@@ -36,6 +34,18 @@ Full build for development, including linting etc:
 git clone https://github.com/udhos/eks-auto-pod-id-assoc
 cd eks-auto-pod-id-assoc
 ./build.sh
+```
+
+Just run the binary:
+
+```bash
+eks-auto-pod-id-assoc
+```
+
+Running docker image:
+
+```bash
+docker run --rm -v $PWD/config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 ```
 
 # How it works
@@ -220,7 +230,7 @@ Install the tool on a server. It does NOT have `~/.kube/config`.
 
 `self=false` (default) will generate credentials for k8s api server using `eks:DescribeCluster`.
 
-With `seft=false`, `cluster_name` must be set to a regex. If you want an exact match,
+With `self=false`, `cluster_name` must be set to a regex. If you want an exact match,
 anchor it like this: `cluster_name: ^my-cluster$`
 
 Run the tool with usual AWS credentials (You could use `~/.aws/config` or `AWS_PROFILE` or credentials in env vars.)
@@ -242,6 +252,10 @@ clusters:
 We provide some built docker images in Docker hub:
 
 https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc
+
+```bash
+docker run --rm -v $PWD/config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
+```
 
 # References
 
