@@ -221,38 +221,6 @@ func (a *application) discoverClusters() []cluster {
 	return clusterList
 }
 
-func serviceAccountsExcludeNamespace(list []serviceAccount, exclude []string) []serviceAccount {
-	var result []serviceAccount
-
-LOOP:
-	for _, sa := range list {
-		for _, ns := range exclude {
-			if sa.Namespace == ns {
-				continue LOOP // exclude this SA
-			}
-		}
-		result = append(result, sa) // keep this SA
-	}
-
-	return result
-}
-
-func podIdentityAssociationExcludeNamespace(list []podIdentityAssociation, exclude []string) []podIdentityAssociation {
-	var result []podIdentityAssociation
-
-LOOP:
-	for _, pia := range list {
-		for _, ns := range exclude {
-			if pia.ServiceAccountNamespace == ns {
-				continue LOOP // exclude this PIA
-			}
-		}
-		result = append(result, pia) // keep this PIA
-	}
-
-	return result
-}
-
 func serviceAccountsExcludeServiceAccounts(list []serviceAccount, exclude []matchServiceAccount) []serviceAccount {
 	var result []serviceAccount
 
