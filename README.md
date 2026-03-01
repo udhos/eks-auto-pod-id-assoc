@@ -103,15 +103,15 @@ SYNOPSIS
 
 ```yaml
 clusters:
-  - cluster_name: ^example-cluster-2$                    # <--- regex (only if self=false)
+  - cluster_name: ^example-cluster-2$                     # <--- regex (only if self=false)
     exclude_service_accounts:
-      - name: ^sa1$                                      # <--- regex
-        namespace: ^default$                             # <--- regex
+      - name: ^sa1$                                       # <--- regex
+        namespace: ^default$                              # <--- regex
     restrict_roles:
-      - role_arn: ^arn:aws:iam::123456789012:role/role1$ # <--- regex
+      - role_arn: ^arn:aws:iam::123456789012:role/role1$  # <--- regex
         allow:
-          - name: ^sa3$
-            namespace: ^default$
+          - name: ^sa3$                                   # <--- regex
+            namespace: ^default$                          # <--- regex
 ```
 
 Some fields must be given regular expressions.
