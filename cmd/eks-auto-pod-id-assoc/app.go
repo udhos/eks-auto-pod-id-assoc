@@ -221,35 +221,44 @@ func (a *application) discoverClusters() []cluster {
 	return clusterList
 }
 
-func serviceAccountsExcludeServiceAccounts(list []serviceAccount, exclude []matchServiceAccount) []serviceAccount {
-	var result []serviceAccount
+// matchesExclude returns true if any of the provided exclusion patterns
+// match the given service account name/namespace pair. the logic is kept
+// separate so the two filter functions remain small and easy to read.
+func matchesExclude(name, namespace string,
+	exclude []matchServiceAccount) bool {
+	for _, ex := range exclude {
+		if ex.match(name, namespace) {
+			return true
+		}
+	}
+	return false
+}
 
-LOOP:
+// serviceAccountsExcludeServiceAccounts returns a new slice containing only
+// the service accounts that do *not* match any exclusion pattern.
+func serviceAccountsExcludeServiceAccounts(list []serviceAccount,
+	exclude []matchServiceAccount) []serviceAccount {
+	var result []serviceAccount
 	for _, sa := range list {
-		for _, ex := range exclude {
-			if ex.match(sa.Name, sa.Namespace) {
-				continue LOOP // exclude this SA
-			}
+		if matchesExclude(sa.Name, sa.Namespace, exclude) {
+			continue // exclude this SA
 		}
 		result = append(result, sa) // keep this SA
 	}
-
 	return result
 }
 
-func podIdentityAssociationExcludeServiceAccounts(list []podIdentityAssociation, exclude []matchServiceAccount) []podIdentityAssociation {
+// podIdentityAssociationExcludeServiceAccounts filters PIAs using the same
+// exclusion rules as above.
+func podIdentityAssociationExcludeServiceAccounts(list []podIdentityAssociation,
+	exclude []matchServiceAccount) []podIdentityAssociation {
 	var result []podIdentityAssociation
-
-LOOP:
 	for _, pia := range list {
-		for _, ex := range exclude {
-			if ex.match(pia.ServiceAccountName, pia.ServiceAccountNamespace) {
-				continue LOOP // exclude this PIA
-			}
+		if matchesExclude(pia.ServiceAccountName, pia.ServiceAccountNamespace, exclude) {
+			continue // exclude this PIA
 		}
 		result = append(result, pia) // keep this PIA
 	}
-
 	return result
 }
 
