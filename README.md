@@ -126,6 +126,11 @@ The field `cluster_name` is not a regex when the field `self` is set to `true`.
 
 You can negate, or invert, a regex by prefixing it with `_` (underscore).
 
+The negation underscore only works as the first character in the expression.
+In any other position the underscore is literal.
+
+This negation is a special extension for regex matching that is not available elsewhere.
+
 Example:
 
 ```yaml
