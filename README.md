@@ -175,6 +175,8 @@ CONFIG_FILE | config.yaml | Path to configuration file.
 INTERVAL | 1m | Interval between resource discovery.
 RUN_ONCE | false | If enabled, the tool executes once and exits.
 DRY | true | If enabled, the tool does NOT modify anything on AWS EKS. If disabled, the tool will create and delete Associations on AWS EKS as needed to synchronize with Service Accounts.
+ADDR | :8080 | Listen address used for health check and metrics.
+HEALTH_PATH | /health | Health check path.
 
 # Permissions
 

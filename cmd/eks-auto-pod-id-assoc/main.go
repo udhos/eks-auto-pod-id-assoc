@@ -53,8 +53,12 @@ func main() {
 	interval := env.Duration("INTERVAL", time.Minute)
 	once := env.Bool("RUN_ONCE", false)
 	dry := env.Bool("DRY", true)
+	addr := env.String("ADDR", ":8080")
+	healthPath := env.String("HEALTH_PATH", "/health")
 
 	app := newApplication(cfg, newRealClient(me, dry))
+
+	startHealth(addr, healthPath)
 
 	for {
 		app.run()
