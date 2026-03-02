@@ -45,7 +45,7 @@ eks-auto-pod-id-assoc
 Running docker image:
 
 ```bash
-docker run --rm -v $PWD/config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
+docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 ```
 
 # How it works
@@ -259,7 +259,7 @@ We provide some built docker images in Docker hub:
 https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc
 
 ```bash
-docker run --rm -v $PWD/config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
+docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 ```
 
 # References
