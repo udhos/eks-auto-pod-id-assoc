@@ -9,6 +9,7 @@ import (
 type application struct {
 	cfg    config
 	client clientInterface
+	server httpServer
 }
 
 func newApplication(cfg config, client clientInterface) *application {

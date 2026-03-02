@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/udhos/boilerplate/boilerplate"
@@ -55,20 +57,44 @@ func main() {
 	dry := env.Bool("DRY", true)
 	addr := env.String("ADDR", ":8080")
 	healthPath := env.String("HEALTH_PATH", "/health")
+	metricsPath := env.String("METRICS_PATH", "/metrics")
 
 	app := newApplication(cfg, newRealClient(me, dry))
 
-	startHealth(addr, healthPath)
+	app.startServer(addr)
 
-	for {
-		app.run()
+	app.startHealth(healthPath)
 
-		if once {
-			infof("RUN_ONCE=true, exiting")
-			break
+	app.startMetrics(metricsPath)
+
+	go func() {
+		//
+		// main loop
+		//
+		for {
+			app.run()
+
+			if once {
+				infof("RUN_ONCE=true, exiting")
+				break
+			}
+
+			infof("sleeping %v", interval)
+			time.Sleep(interval)
 		}
+	}()
 
-		infof("sleeping %v", interval)
-		time.Sleep(interval)
-	}
+	gracefulShutdown(app)
+
+	infof("main exiting")
+}
+
+func gracefulShutdown(app *application) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+
+	infof("received signal '%v', initiating shutdown", sig)
+
+	app.stopServer()
 }
