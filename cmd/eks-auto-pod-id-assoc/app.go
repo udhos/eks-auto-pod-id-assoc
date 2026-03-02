@@ -3,19 +3,22 @@ package main
 import (
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.yaml.in/yaml/v4"
 )
 
 type application struct {
-	cfg    config
-	client clientInterface
-	server httpServer
+	cfg      config
+	client   clientInterface
+	server   httpServer
+	registry *prometheus.Registry
 }
 
 func newApplication(cfg config, client clientInterface) *application {
 	app := &application{
-		cfg:    cfg,
-		client: client,
+		cfg:      cfg,
+		client:   client,
+		registry: prometheus.NewRegistry(),
 	}
 	return app
 }
