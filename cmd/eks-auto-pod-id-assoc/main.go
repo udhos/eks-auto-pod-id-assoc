@@ -58,8 +58,13 @@ func main() {
 	addr := env.String("ADDR", ":8080")
 	healthPath := env.String("HEALTH_PATH", "/health")
 	metricsPath := env.String("METRICS_PATH", "/metrics")
+	metricsNamespace := env.String("METRICS_NAMESPACE", "")
+	latencyBucketsSeconds := env.Float64Slice("LATENCY_BUCKETS_SECONDS",
+		defaultLatencyBucketsSeconds)
 
-	app := newApplication(cfg, newRealClient(me, dry))
+	met := newMetrics(metricsNamespace, latencyBucketsSeconds)
+
+	app := newApplication(cfg, met, newRealClient(me, dry, met))
 
 	app.startServer(addr)
 
@@ -88,6 +93,8 @@ func main() {
 
 	infof("main exiting")
 }
+
+var defaultLatencyBucketsSeconds = []float64{.01, .025, .05, .1, .25, .5, 1, 2.5}
 
 func gracefulShutdown(app *application) {
 	quit := make(chan os.Signal, 1)

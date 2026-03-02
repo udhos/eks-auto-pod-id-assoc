@@ -31,7 +31,11 @@ clusters:
 			countClusters)
 	}
 
-	app := newApplication(cfg, client)
+	const namespace = ""
+
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+
+	app := newApplication(cfg, met, client)
 
 	clusterList := app.discoverClusters()
 
@@ -68,7 +72,11 @@ clusters:
 			countClusters)
 	}
 
-	app := newApplication(cfg, client)
+	const namespace = ""
+
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+
+	app := newApplication(cfg, met, client)
 
 	clusterList := app.discoverClusters()
 
@@ -98,7 +106,11 @@ clusters:
 
 	client := newMockClient()
 
-	app := newApplication(cfg, client)
+	const namespace = ""
+
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+
+	app := newApplication(cfg, met, client)
 
 	{
 		clusterList := app.discoverClusters()
@@ -189,7 +201,11 @@ clusters:
 
 	client := newMockClient()
 
-	app := newApplication(cfg, client)
+	const namespace = ""
+
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+
+	app := newApplication(cfg, met, client)
 
 	{
 		clusterList := app.discoverClusters()

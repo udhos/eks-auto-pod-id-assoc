@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
@@ -13,15 +14,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func newRealClient(prog string, dry bool) *realClient {
+func newRealClient(prog string, dry bool, metrics metrics) *realClient {
 	return &realClient{
-		prog: prog,
-		dry:  dry}
+		prog:    prog,
+		dry:     dry,
+		metrics: metrics,
+	}
 }
 
 type realClient struct {
-	prog string
-	dry  bool
+	prog    string
+	dry     bool
+	metrics metrics
 }
 
 func (c *realClient) getEKSClient(roleArn, region string) (*eks.Client, error) {
@@ -89,7 +93,18 @@ func (c *realClient) getKubeClient(self bool, roleArn,
 
 	input := eks.DescribeClusterInput{Name: aws.String(clusterName)}
 
+	begin := time.Now()
+
 	out, errDesc := clientEks.DescribeCluster(context.TODO(), &input)
+
+	elap := time.Since(begin)
+
+	c.metrics.recordLatency(clusterName,
+		apiEksDescribeCluster, getAPIStatus(errDesc),
+		elap)
+
+	infof("DescribeCluster: %s: elapsed=%v", clusterName, elap)
+
 	if errDesc != nil {
 		return nil, fmt.Errorf("describe eks cluster error: %w", errDesc)
 	}

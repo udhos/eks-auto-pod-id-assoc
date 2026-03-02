@@ -160,7 +160,7 @@ namespace: ""   # an empty regex field matches anything
 
 namespace: _    # this negates the empty regex, thus it matches NOTHING
 
-namespace: ^$   # this matches only the empty namespace, impossible in kubernetes), so it matches NOTHING
+namespace: ^$   # this matches only the empty namespace, impossible in kubernetes, so it matches NOTHING
 
 namespace: _^$  # negates the previous rule, so it matches anything
 ```
@@ -177,6 +177,9 @@ RUN_ONCE | false | If enabled, the tool executes once and exits.
 DRY | true | If enabled, the tool does NOT modify anything on AWS EKS. If disabled, the tool will create and delete Associations on AWS EKS as needed to synchronize with Service Accounts.
 ADDR | :8080 | Listen address used for health check and metrics.
 HEALTH_PATH | /health | Health check path.
+METRICS_PATH | /metrics | Metrics path.
+METRICS_NAMESPACE | "" | Metrics namespace.
+LATENCY_BUCKETS_SECONDS | ".01, .025, .05, .1, .25, .5, 1, 2.5" | Latency buckets in seconds.
 
 # Permissions
 
