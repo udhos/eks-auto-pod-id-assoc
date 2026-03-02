@@ -63,9 +63,9 @@ func main() {
 
 	app.startServer(addr)
 
-	app.startHealth(healthPath)
+	app.serveHealth(healthPath)
 
-	app.startMetrics(metricsPath)
+	app.serveMetrics(metricsPath)
 
 	go func() {
 		//

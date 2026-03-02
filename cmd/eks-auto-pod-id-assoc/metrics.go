@@ -2,7 +2,7 @@ package main
 
 import "github.com/prometheus/client_golang/prometheus/promhttp"
 
-func (a *application) startMetrics(path string) {
+func (a *application) serveMetrics(path string) {
 
 	handler := promhttp.InstrumentMetricHandler(
 		a.registry, promhttp.HandlerFor(a.registry, promhttp.HandlerOpts{}))
