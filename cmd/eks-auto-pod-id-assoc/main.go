@@ -93,7 +93,7 @@ func main() {
 	infof("main exiting")
 }
 
-var defaultLatencyBucketsSeconds = []float64{.01, .025, .05, .1, .25, .5, 1, 2.5}
+var defaultLatencyBucketsSeconds = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5}
 
 func gracefulShutdown(app *application) {
 	quit := make(chan os.Signal, 1)

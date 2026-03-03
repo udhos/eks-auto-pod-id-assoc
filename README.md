@@ -179,7 +179,7 @@ ADDR | :8080 | Listen address used for health check and metrics.
 HEALTH_PATH | /health | Health check path.
 METRICS_PATH | /metrics | Metrics path.
 METRICS_NAMESPACE | "" | Metrics namespace.
-LATENCY_BUCKETS_SECONDS | ".01, .025, .05, .1, .25, .5, 1, 2.5" | Latency buckets in seconds.
+LATENCY_BUCKETS_SECONDS | ".005, .01, .025, .05, .1, .25, .5, 1, 2.5" | Latency buckets in seconds.
 
 # Permissions
 
