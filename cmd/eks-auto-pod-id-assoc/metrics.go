@@ -13,6 +13,8 @@ type metrics struct {
 
 	serviceAccounts         *prometheus.GaugeVec
 	podIdentityAssociations *prometheus.GaugeVec
+	discoverLatency         *prometheus.GaugeVec
+	reconcileLatency        *prometheus.GaugeVec
 	apiLatency              *prometheus.HistogramVec
 }
 
@@ -28,7 +30,17 @@ func (m metrics) recordPodIdentityAssociations(cluster,
 		ignoreReason).Set(value)
 }
 
-func (m metrics) recordLatency(cluster, api, status string, elapsed time.Duration) {
+func (m metrics) recordDiscoverLatency(cluster string, elapsed time.Duration) {
+	sec := float64(elapsed) / float64(time.Second)
+	m.discoverLatency.WithLabelValues(cluster).Set(sec)
+}
+
+func (m metrics) recordReconcileLatency(cluster string, elapsed time.Duration) {
+	sec := float64(elapsed) / float64(time.Second)
+	m.reconcileLatency.WithLabelValues(cluster).Set(sec)
+}
+
+func (m metrics) recordAPILatency(cluster, api, status string, elapsed time.Duration) {
 	sec := float64(elapsed) / float64(time.Second)
 	m.apiLatency.WithLabelValues(cluster, api, status).Observe(sec)
 }
@@ -84,6 +96,28 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
 				Help:      "Number of Pod Identity Associations.",
 			},
 			[]string{"cluster", "ignore_reason"},
+		),
+
+		discoverLatency: newGaugeVec(
+			registry,
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "discover_latency_seconds",
+				Help:      "Latency of discovery.",
+			},
+			[]string{"cluster"},
+		),
+
+		reconcileLatency: newGaugeVec(
+			registry,
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      "reconcile_latency_seconds",
+				Help:      "Latency of reconcile.",
+			},
+			[]string{"cluster"},
 		),
 
 		apiLatency: newHistoryVec(

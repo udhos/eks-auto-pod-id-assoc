@@ -429,6 +429,160 @@ clusters:
 	}
 }
 
+func TestRestrictedRolesOrderCatchAllAtEnd(t *testing.T) {
+
+	const input = `
+clusters:
+  - restrict_roles:
+      - role_arn: ^role1$
+        allow:
+          - name: ^sa1$
+            namespace: ^ns1$
+      - role_arn: ""
+        allow:
+          - name: ^sa2$
+            namespace: ^ns2$
+`
+
+	cfg, err := loadConfig([]byte(input))
+	if err != nil {
+		t.Fatalf("load config error: %v", err)
+	}
+
+	if len(cfg.Clusters) != 1 {
+		t.Fatalf("wrong number of clusters: %d", len(cfg.Clusters))
+	}
+
+	serviceAccounts := []serviceAccount{
+		{
+			// allowed
+			Name:       "sa1",
+			Namespace:  "ns1",
+			AwsRoleArn: "role1",
+		},
+		{
+			// not allowed
+			Name:       "sa2",
+			Namespace:  "ns2",
+			AwsRoleArn: "role1",
+		},
+		{
+			// not allowed
+			Name:       "xxx",
+			Namespace:  "xxx",
+			AwsRoleArn: "role1",
+		},
+		{
+			// allowed
+			Name:       "sa2",
+			Namespace:  "ns2",
+			AwsRoleArn: "role2",
+		},
+		{
+			// not allowed
+			Name:       "xxx",
+			Namespace:  "xxx",
+			AwsRoleArn: "role2",
+		},
+	}
+
+	result := excludeRestrictedRoles(serviceAccounts, cfg.Clusters[0].RestrictRoles)
+
+	if len(result) != 2 {
+		t.Fatalf("wrong number of service accounts: %d", len(result))
+	}
+
+	if result[0].Name != "sa1" {
+		t.Fatalf("wrong SA 0 name: %s", result[0].Name)
+	}
+	if result[0].Namespace != "ns1" {
+		t.Fatalf("wrong SA 0 namespace: %s", result[0].Namespace)
+	}
+	if result[1].Name != "sa2" {
+		t.Fatalf("wrong SA 1 name: %s", result[1].Name)
+	}
+	if result[1].Namespace != "ns2" {
+		t.Fatalf("wrong SA 1 namespace: %s", result[1].Namespace)
+	}
+}
+
+func TestRestrictedRolesOrderCatchAllAtBegin(t *testing.T) {
+
+	const input = `
+clusters:
+  - restrict_roles:
+      - role_arn: ""
+        allow:
+          - name: ^sa2$
+            namespace: ^ns2$
+      - role_arn: ^role1$
+        allow:
+          - name: ^sa1$
+            namespace: ^ns1$
+`
+
+	cfg, err := loadConfig([]byte(input))
+	if err != nil {
+		t.Fatalf("load config error: %v", err)
+	}
+
+	if len(cfg.Clusters) != 1 {
+		t.Fatalf("wrong number of clusters: %d", len(cfg.Clusters))
+	}
+
+	serviceAccounts := []serviceAccount{
+		{
+			// not allowed
+			Name:       "sa1",
+			Namespace:  "ns1",
+			AwsRoleArn: "role1",
+		},
+		{
+			// allowed
+			Name:       "sa2",
+			Namespace:  "ns2",
+			AwsRoleArn: "role1",
+		},
+		{
+			// not allowed
+			Name:       "xxx",
+			Namespace:  "xxx",
+			AwsRoleArn: "role1",
+		},
+		{
+			// allowed
+			Name:       "sa2",
+			Namespace:  "ns2",
+			AwsRoleArn: "role2",
+		},
+		{
+			// not allowed
+			Name:       "xxx",
+			Namespace:  "xxx",
+			AwsRoleArn: "role2",
+		},
+	}
+
+	result := excludeRestrictedRoles(serviceAccounts, cfg.Clusters[0].RestrictRoles)
+
+	if len(result) != 2 {
+		t.Fatalf("wrong number of service accounts: %d", len(result))
+	}
+
+	if result[0].Name != "sa2" {
+		t.Fatalf("wrong SA 0 name: %s", result[0].Name)
+	}
+	if result[0].Namespace != "ns2" {
+		t.Fatalf("wrong SA 0 namespace: %s", result[0].Namespace)
+	}
+	if result[1].Name != "sa2" {
+		t.Fatalf("wrong SA 1 name: %s", result[1].Name)
+	}
+	if result[1].Namespace != "ns2" {
+		t.Fatalf("wrong SA 1 namespace: %s", result[1].Namespace)
+	}
+}
+
 func newMockClient() *mockClient {
 	client := &mockClient{
 		regions: map[string][]mockCluster{

@@ -72,19 +72,23 @@ func main() {
 
 	app.serveMetrics(metricsPath)
 
+	// first run immediately
+	app.run()
+
+	if once {
+		infof("RUN_ONCE=true, exiting")
+		app.stopServer()
+		os.Exit(0)
+	}
+
 	go func() {
 		//
 		// main loop
 		//
 
 		ticker := time.NewTicker(interval)
-
 		for range ticker.C {
 			app.run()
-			if once {
-				infof("RUN_ONCE=true, exiting")
-				break
-			}
 		}
 	}()
 

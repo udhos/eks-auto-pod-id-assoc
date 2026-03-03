@@ -46,76 +46,89 @@ func dumpClusters(clusterList []cluster, label string) {
 	fmt.Println(string(yamlBytes))
 }
 
+func (a *application) reconcileOneClusters(cl cluster) {
+
+	clusterLabel := fmt.Sprintf("role=%q region=%q cluster=%q",
+		cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+
+	// create associations for service accounts without associations
+	{
+		missingServiceAccounts := a.findMissingServiceAccounts(cl)
+
+		infof("%s found missing service accounts: %d",
+			clusterLabel, len(missingServiceAccounts))
+
+		for i, sa := range missingServiceAccounts {
+			label := fmt.Sprintf("%d/%d", i+1, len(missingServiceAccounts))
+
+			begin := time.Now()
+
+			err := a.client.createPodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
+				cl.Config.Region, cl.Config.ClusterName, sa.Namespace, sa.Name, sa.AwsRoleArn)
+
+			elap := time.Since(begin)
+
+			a.metrics.recordAPILatency(cl.Config.ClusterName,
+				apiEksCreatePodIdentityAssociation, getAPIStatus(err),
+				elap)
+
+			if err != nil {
+				errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v: %v",
+					clusterLabel, label, sa.Name, sa.AwsRoleArn, elap, err)
+				continue
+			}
+
+			infof("%s created pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v",
+				clusterLabel, label, sa.Name, sa.AwsRoleArn, elap)
+		}
+	}
+
+	// delete associations for service accounts that don't exist
+	{
+		stalePIAs := a.findStalePodIdentityAssociations(cl)
+
+		infof("%s found stale pod identity associations: %d",
+			clusterLabel, len(stalePIAs))
+
+		for i, pia := range stalePIAs {
+			label := fmt.Sprintf("%d/%d", i+1, len(stalePIAs))
+
+			begin := time.Now()
+
+			err := a.client.deletePodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
+				cl.Config.Region, pia.ClusterName, pia.AssociationID)
+
+			elap := time.Since(begin)
+
+			a.metrics.recordAPILatency(cl.Config.ClusterName,
+				apiEksDeletePodIdentityAssociation, getAPIStatus(err),
+				elap)
+
+			if err != nil {
+				errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v: %v",
+					clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap, err)
+				continue
+			}
+
+			infof("%s deleted pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v",
+				clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap)
+		}
+	}
+}
+
 func (a *application) reconcileClusters(clusterList []cluster) {
 	for _, cl := range clusterList {
 
-		clusterLabel := fmt.Sprintf("role=%q region=%q cluster=%q",
-			cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+		begin := time.Now()
 
-		// create associations for service accounts without associations
-		{
-			missingServiceAccounts := a.findMissingServiceAccounts(cl)
+		a.reconcileOneClusters(cl)
 
-			infof("%s found missing service accounts: %d",
-				clusterLabel, len(missingServiceAccounts))
+		elap := time.Since(begin)
 
-			for i, sa := range missingServiceAccounts {
-				label := fmt.Sprintf("%d/%d", i+1, len(missingServiceAccounts))
+		a.metrics.recordReconcileLatency(cl.Config.ClusterName, elap)
 
-				begin := time.Now()
-
-				err := a.client.createPodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
-					cl.Config.Region, cl.Config.ClusterName, sa.Namespace, sa.Name, sa.AwsRoleArn)
-
-				elap := time.Since(begin)
-
-				a.metrics.recordLatency(cl.Config.ClusterName,
-					apiEksCreatePodIdentityAssociation, getAPIStatus(err),
-					elap)
-
-				if err != nil {
-					errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v: %v",
-						clusterLabel, label, sa.Name, sa.AwsRoleArn, elap, err)
-					continue
-				}
-
-				infof("%s created pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v",
-					clusterLabel, label, sa.Name, sa.AwsRoleArn, elap)
-			}
-		}
-
-		// delete associations for service accounts that don't exist
-		{
-			stalePIAs := a.findStalePodIdentityAssociations(cl)
-
-			infof("%s found stale pod identity associations: %d",
-				clusterLabel, len(stalePIAs))
-
-			for i, pia := range stalePIAs {
-				label := fmt.Sprintf("%d/%d", i+1, len(stalePIAs))
-
-				begin := time.Now()
-
-				err := a.client.deletePodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
-					cl.Config.Region, pia.ClusterName, pia.AssociationID)
-
-				elap := time.Since(begin)
-
-				a.metrics.recordLatency(cl.Config.ClusterName,
-					apiEksDeletePodIdentityAssociation, getAPIStatus(err),
-					elap)
-
-				if err != nil {
-					errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v: %v",
-						clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap, err)
-					continue
-				}
-
-				infof("%s deleted pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v",
-					clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap)
-			}
-		}
-
+		infof("reconcile latency: region=%q cluster=%q elapsed=%v",
+			cl.Config.Region, cl.Config.ClusterName, elap)
 	}
 }
 
@@ -189,7 +202,7 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 
 	elap := time.Since(begin)
 
-	a.metrics.recordLatency("",
+	a.metrics.recordAPILatency("",
 		apiEksListClusters, getAPIStatus(err),
 		elap)
 
@@ -215,6 +228,83 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 	return clusterNames, nil
 }
 
+func (a *application) discoverOneCluster(c configCluster, clusterName string) (cluster, error) {
+	beginSA := time.Now()
+
+	saList, err := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
+		clusterName, c.Annotation)
+
+	elapsedSA := time.Since(beginSA)
+
+	a.metrics.recordAPILatency(clusterName,
+		apiServiceAccountsList, getAPIStatus(err),
+		elapsedSA)
+
+	if err != nil {
+		return cluster{}, fmt.Errorf("failed to list service accounts for cluster %s: elapsed=%v: %w",
+			clusterName, elapsedSA, err)
+	}
+
+	saTotal := len(saList)
+
+	infof("listServiceAccounts: cluster=%q elapsed=%v found=%d",
+		clusterName, elapsedSA, saTotal)
+
+	beginPIA := time.Now()
+
+	piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
+		c.Region, clusterName)
+
+	elapsedPIA := time.Since(beginPIA)
+
+	a.metrics.recordAPILatency(clusterName,
+		apiEksListPodIdentityAssociations, getAPIStatus(err),
+		elapsedPIA)
+
+	if err != nil {
+		return cluster{}, fmt.Errorf("failed to list pod identity associations for cluster %s: elapsed=%v: %w",
+			clusterName, elapsedPIA, err)
+	}
+
+	piaTotal := len(piaList)
+
+	infof("listPodIdentityAssociations: cluster=%q elapsed=%v found=%d",
+		clusterName, elapsedPIA, piaTotal)
+
+	// exclude SAs according RestrictRoles
+	saList = excludeRestrictedRoles(saList, c.RestrictRoles)
+
+	saNonRestricted := len(saList)
+	saRestricted := saTotal - saNonRestricted
+
+	// exclude SAs according exclude_service_accounts
+	saList = serviceAccountsExcludeServiceAccounts(saList, c.ExcludeServiceAccounts)
+
+	saNonIgnored := len(saList)
+	saExcluded := saNonRestricted - saNonIgnored
+
+	a.metrics.recordServiceAccounts(clusterName, ignoreReasonNotIgnored, float64(saNonIgnored))
+	a.metrics.recordServiceAccounts(clusterName, ignoreReasonExcluded, float64(saExcluded))
+	a.metrics.recordServiceAccounts(clusterName, ignoreReasonRestrictedRole, float64(saRestricted))
+
+	// exclude PIAs according exclude_service_accounts
+	piaList = podIdentityAssociationExcludeServiceAccounts(piaList, c.ExcludeServiceAccounts)
+
+	piaNonIgnored := len(piaList)
+	piaExcluded := piaTotal - piaNonIgnored
+
+	a.metrics.recordPodIdentityAssociations(clusterName, ignoreReasonNotIgnored, float64(piaNonIgnored))
+	a.metrics.recordPodIdentityAssociations(clusterName, ignoreReasonExcluded, float64(piaExcluded))
+
+	c.ClusterName = clusterName // discovered cluster name
+
+	return cluster{
+		Config:                  c,
+		ServiceAccounts:         saList,
+		PodIdentityAssociations: piaList,
+	}, nil
+}
+
 func (a *application) discoverClusters() []cluster {
 	//
 	// discover clusters, service accounts and pod identity associations
@@ -232,83 +322,22 @@ func (a *application) discoverClusters() []cluster {
 		// discover service accounts and pod identity associations for each cluster
 		for _, clusterName := range clusterNames {
 
-			beginSA := time.Now()
+			begin := time.Now()
 
-			saList, err := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
-				clusterName, c.Annotation)
+			cl, errDisc := a.discoverOneCluster(c, clusterName)
 
-			elapsedSA := time.Since(beginSA)
+			elap := time.Since(begin)
 
-			a.metrics.recordLatency(clusterName,
-				apiServiceAccountsList, getAPIStatus(err),
-				elapsedSA)
+			a.metrics.recordDiscoverLatency(clusterName, elap)
 
-			if err != nil {
-				errorf("failed to list service accounts for cluster %s: elapsed=%v: %v",
-					clusterName, elapsedSA, err)
-				continue // skip this cluster
+			infof("discover latency: region=%q cluster=%q elapsed=%v",
+				cl.Config.Region, cl.Config.ClusterName, elap)
+
+			if errDisc != nil {
+				errorf("%v", errDisc)
+				continue
 			}
-
-			saTotal := len(saList)
-
-			infof("listServiceAccounts: cluster=%q elapsed=%v found=%d",
-				clusterName, elapsedSA, saTotal)
-
-			beginPIA := time.Now()
-
-			piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
-				c.Region, clusterName)
-
-			elapsedPIA := time.Since(beginPIA)
-
-			a.metrics.recordLatency(clusterName,
-				apiEksListPodIdentityAssociations, getAPIStatus(err),
-				elapsedPIA)
-
-			if err != nil {
-				errorf("failed to list pod identity associations for cluster %s: elapsed=%v: %v",
-					clusterName, elapsedPIA, err)
-				continue // skip this cluster
-			}
-
-			piaTotal := len(piaList)
-
-			infof("listPodIdentityAssociations: cluster=%q elapsed=%v found=%d",
-				clusterName, elapsedPIA, piaTotal)
-
-			// exclude SAs according RestrictRoles
-			saList = excludeRestrictedRoles(saList, c.RestrictRoles)
-
-			saNonRestricted := len(saList)
-			saRestricted := saTotal - saNonRestricted
-
-			// exclude SAs according exclude_service_accounts
-			saList = serviceAccountsExcludeServiceAccounts(saList, c.ExcludeServiceAccounts)
-
-			saNonIgnored := len(saList)
-			saExcluded := saNonRestricted - saNonIgnored
-
-			a.metrics.recordServiceAccounts(clusterName, ignoreReasonNotIgnored, float64(saNonIgnored))
-			a.metrics.recordServiceAccounts(clusterName, ignoreReasonExcluded, float64(saExcluded))
-			a.metrics.recordServiceAccounts(clusterName, ignoreReasonRestrictedRole, float64(saRestricted))
-
-			// exclude PIAs according exclude_service_accounts
-			piaList = podIdentityAssociationExcludeServiceAccounts(piaList, c.ExcludeServiceAccounts)
-
-			piaNonIgnored := len(piaList)
-			piaExcluded := piaTotal - piaNonIgnored
-
-			a.metrics.recordPodIdentityAssociations(clusterName, ignoreReasonNotIgnored, float64(piaNonIgnored))
-			a.metrics.recordPodIdentityAssociations(clusterName, ignoreReasonExcluded, float64(piaExcluded))
-
-			cc := c
-			cc.ClusterName = clusterName // discovered cluster name
-
-			clusterList = append(clusterList, cluster{
-				Config:                  cc,
-				ServiceAccounts:         saList,
-				PodIdentityAssociations: piaList,
-			})
+			clusterList = append(clusterList, cl)
 		}
 	}
 

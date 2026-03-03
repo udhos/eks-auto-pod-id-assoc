@@ -177,7 +177,7 @@ func (c *realClient) getKubeClient(self bool, roleArn,
 
 	elap := time.Since(begin)
 
-	c.metrics.recordLatency(clusterName,
+	c.metrics.recordAPILatency(clusterName,
 		apiEksDescribeCluster, getAPIStatus(errDesc),
 		elap)
 
