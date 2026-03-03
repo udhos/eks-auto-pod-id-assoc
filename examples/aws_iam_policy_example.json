@@ -1,0 +1,19 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "eks",
+            "Effect": "Allow",
+            "Action": [
+                "eks:ListClusters",
+                "eks:DescribeCluster",
+                "eks:ListPodIdentityAssociations",
+                "eks:CreatePodIdentityAssociation",
+                "eks:DeletePodIdentityAssociation",
+                "iam:PassRole",
+                "iam:GetRole"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

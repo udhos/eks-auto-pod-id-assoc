@@ -187,10 +187,19 @@ The tool needs these permissions on every cluster it should synchronize.
 
 Permission | Comment
 -- | --
+k8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
 `eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate kubernetes credentials for the k8s API server.
-apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
 `eks:ListPodIdentityAssociations` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
+`iam:PassRole` and `"iam:GetRole"` | Permissions required to create Assosciations on AWS EKS.
+
+See examples:
+
+- k8s clusterrole in [examples/clusterrole_example.yaml](examples/clusterrole_example.yaml).
+
+- k8s clusterrolebinding in [examples/clusterrolebinding_example.yaml](examples/clusterrolebinding_example.yaml).
+
+- AWS policy in [examples/aws_iam_policy_example.json](examples/aws_iam_policy_example.json).
 
 # Topologies
 
