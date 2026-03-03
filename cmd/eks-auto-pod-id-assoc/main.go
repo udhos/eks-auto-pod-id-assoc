@@ -76,16 +76,15 @@ func main() {
 		//
 		// main loop
 		//
-		for {
-			app.run()
 
+		ticker := time.NewTicker(interval)
+
+		for range ticker.C {
+			app.run()
 			if once {
 				infof("RUN_ONCE=true, exiting")
 				break
 			}
-
-			infof("sleeping %v", interval)
-			time.Sleep(interval)
 		}
 	}()
 
