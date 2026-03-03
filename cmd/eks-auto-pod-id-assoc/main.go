@@ -25,8 +25,6 @@ func main() {
 	flag.Parse()
 
 	me := filepath.Base(os.Args[0])
-	infof("%s", boilerplate.LongVersion(me))
-	env := envconfig.NewSimple(me)
 
 	//
 	// version
@@ -41,6 +39,7 @@ func main() {
 		infof("%s", v)
 	}
 
+	env := envconfig.NewSimple(me)
 	configFile := env.String("CONFIG_FILE", "config.yaml")
 	cfg, err := loadConfigFromFile(configFile)
 	if err != nil {
