@@ -7,6 +7,7 @@
 
 [eks-auto-pod-id-assoc](https://github.com/udhos/eks-auto-pod-id-assoc) automatically synchronizes EKS Pod Identity Associations from Service Accounts.
 
+* [Why](#why)
 * [Building and running](#building-and-running)
 * [How it works](#how-it-works)
 * [Configuration file](#configuration-file)
@@ -21,6 +22,16 @@
 * [References](#references)
 
 Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
+
+# Why
+
+- **Eliminate manual sync work** - Stop managing Pod Identity Associations in AWS Console; define everything in Kubernetes.
+- **Zero drift guarantee** - Kubernetes is the source of truth; no more mismatches between ServiceAccounts and EKS associations.
+- **Scale effortlessly** - Manage 1 cluster or multiple with a single config; regex-based discovery scales automatically.
+- **Built-in security guardrails** - Declare which roles each ServiceAccount can use; prevent privilege escalation across applications.
+- **GitOps ready** - Codify your entire infrastructure as Kubernetes manifests; works with any CI/CD pipeline.
+- **Flexible deployment** - Run inside the cluster, on a management host, or across multiple AWS accounts without code changes.
+
 # Building and running
 
 Quick build:
