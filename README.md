@@ -1,6 +1,7 @@
 [![license](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/udhos/eks-auto-pod-id-assoc/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/udhos/eks-auto-pod-id-assoc)](https://goreportcard.com/report/github.com/udhos/eks-auto-pod-id-assoc)
 [![Go Reference](https://pkg.go.dev/badge/github.com/udhos/eks-auto-pod-id-assoc.svg)](https://pkg.go.dev/github.com/udhos/eks-auto-pod-id-assoc)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/eks-auto-pod-id-assoc)](https://artifacthub.io/packages/search?repo=eks-auto-pod-id-assoc)
 [![Docker Pulls](https://img.shields.io/docker/pulls/udhos/eks-auto-pod-id-assoc)](https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc)
 
 # eks-auto-pod-id-assoc
@@ -19,6 +20,9 @@
   * [Topology example 2: Running in a server with ~/\.kube/config managing one cluster](#topology-example-2-running-in-a-server-with-kubeconfig-managing-one-cluster)
   * [Topology example 3: Running in a server with AWS credentials managing multiple clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multiple-clusters)
 * [Docker Hub](#docker-hub)
+* [Helm chart](#helm-chart)
+  * [Using the helm repository](#using-the-helm-repository)
+  * [Using local chart](#using-local-chart)
 * [References](#references)
 
 Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
@@ -281,6 +285,25 @@ https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc
 
 ```bash
 docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
+```
+
+# Helm chart
+
+## Using the helm repository
+
+See: https://udhos.github.io/eks-auto-pod-id-assoc/
+
+## Using local chart
+
+```bash
+# render chart to stdout
+helm template eks-auto-pod-id-assoc ./charts/eks-auto-pod-id-assoc
+
+# install chart
+helm upgrade --install eks-auto-pod-id-assoc ./charts/eks-auto-pod-id-assoc
+
+# logs
+kubectl logs deploy/eks-auto-pod-id-assoc -f
 ```
 
 # References
