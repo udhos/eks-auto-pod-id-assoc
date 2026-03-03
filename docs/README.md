@@ -14,8 +14,8 @@ Update files from repo:
 Search eks-auto-pod-id-assoc:
 
     $ helm search repo eks-auto-pod-id-assoc -l --version ">=0.0.0"
-    NAME                                                CHART VERSION   APP VERSION	DESCRIPTION
-    eks-auto-pod-id-assoc/eks-auto-pod-id-assoc	        0.0.5           0.0.5       Install eks-auto-pod-id-assoc on Kubernetes cluster
+    NAME                                       	CHART VERSION   APP VERSION DESCRIPTION
+    eks-auto-pod-id-assoc/eks-auto-pod-id-assoc	0.0.5           0.0.5       Install eks-auto-pod-id-assoc on Kubernetes
 
 To install the charts:
 
