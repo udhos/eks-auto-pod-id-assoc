@@ -62,7 +62,7 @@ docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 
 # How it works
 
-`eks-auto-pod-id-assoc` automatically synchronizes [EKS Pod Identity Associations](https://docs.aws.amazon.com/eks/latest/eksctl/pod-identity-associations.html) from K8S Service Accounts:
+`eks-auto-pod-id-assoc` automatically synchronizes [EKS Pod Identity Associations](https://docs.aws.amazon.com/eks/latest/eksctl/pod-identity-associations.html) from K8s Service Accounts:
 
 - If a ServiceAccount is created with annotation `eks.amazonaws.com/role-arn`, an Association is also created.
 
@@ -199,17 +199,17 @@ The tool needs these permissions on every cluster it should synchronize.
 
 Permission | Comment
 -- | --
-k8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
-`eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the k8s API server.
+K8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
+`eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the K8s API server.
 `eks:ListPodIdentityAssociations` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
 `iam:PassRole` and `"iam:GetRole"` | Permissions required to create Associations on AWS EKS.
 
 See examples:
 
-- k8s clusterrole in [examples/clusterrole_example.yaml](examples/clusterrole_example.yaml).
+- K8s clusterrole in [examples/clusterrole_example.yaml](examples/clusterrole_example.yaml).
 
-- k8s clusterrolebinding in [examples/clusterrolebinding_example.yaml](examples/clusterrolebinding_example.yaml).
+- K8s clusterrolebinding in [examples/clusterrolebinding_example.yaml](examples/clusterrolebinding_example.yaml).
 
 - AWS policy in [examples/aws_iam_policy_example.json](examples/aws_iam_policy_example.json).
 
@@ -223,8 +223,8 @@ There is one single EKS cluster running on region "us-east-1" and the tool runs 
 
 Use `self=true` to enable in-cluster behavior and set the exact cluster name with `cluster_name`.
 
-You will need to use some other method to give the POD permission to call AWS APIs in order to create/delete Associations on EKS. That's because the POD will not be able to manage its own Association.
-One option is to create the Association manually or using some Infra-as-Code like Terraform.
+You will need to use some other method to give the Pod permission to call AWS APIs in order to create/delete Associations on EKS. That's because the Pod will not be able to manage its own Association.
+One option is to create the Association manually or using some Infrastructure-as-Code like Terraform.
 
 ```yaml
 clusters:
@@ -254,7 +254,7 @@ clusters:
 
 Install the tool on a server. It does NOT have `~/.kube/config`.
 
-`self=false` (default) will generate credentials for k8s api server using `eks:DescribeCluster`.
+`self=false` (default) will generate credentials for K8s api server using `eks:DescribeCluster`.
 
 With `self=false`, `cluster_name` must be set to a regex. If you want an exact match,
 anchor it like this: `cluster_name: ^my-cluster$`
