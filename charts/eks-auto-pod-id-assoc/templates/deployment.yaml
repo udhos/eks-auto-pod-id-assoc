@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eks-auto-pod-id-assoc.fullname" . }}
+  labels:
+    {{- include "eks-auto-pod-id-assoc.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "eks-auto-pod-id-assoc.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- if or .Values.podAnnotations (or (eq .Values.redeploy "always") (eq .Values.redeploy "reconfig")) }}
+      annotations:
+      {{- end }}
+        {{- if eq .Values.redeploy "always" }}
+        rollme: {{ randAlphaNum 5 | quote }}
+        {{- end }}
+        {{- if eq .Values.redeploy "reconfig" }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "eks-auto-pod-id-assoc.selectorLabels" . | nindent 8 }}
+        {{- if .Values.customLabels }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.customLabels "context" $ ) | nindent 8 }}
+        {{- end }}
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: {{ .Release.Name }}
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "eks-auto-pod-id-assoc.fullname" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "eks-auto-pod-id-assoc.fullname" . }}-config
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      containers:
+        - name: {{ .Release.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+          - configMapRef:
+              name: {{ include "eks-auto-pod-id-assoc.fullname" . }}
+          volumeMounts:
+          - name: config
+            mountPath: /etc/eks-auto-pod-id-assoc
+          startupProbe:
+            # must initialize within 3*100=300 seconds
+            httpGet:
+              path: {{ .Values.podHealthCheck.path }}
+              port: {{ .Values.podHealthCheck.port }}
+              scheme: {{ .Values.podHealthCheck.scheme }}
+            periodSeconds: 3
+            failureThreshold: 100
+          readinessProbe:
+            # not ready after 10*6=60 seconds without success
+            httpGet:
+              path: {{ .Values.podHealthCheck.path }}
+              port: {{ .Values.podHealthCheck.port }}
+              scheme: {{ .Values.podHealthCheck.scheme }}
+            periodSeconds: 10
+            failureThreshold: 6
+            successThreshold: 1
+            timeoutSeconds: 5
+          livenessProbe:
+            # kill after 20*6=120 seconds without success
+            httpGet:
+              path: {{ .Values.podHealthCheck.path }}
+              port: {{ .Values.podHealthCheck.port }}
+              scheme: {{ .Values.podHealthCheck.scheme }}
+            periodSeconds: 20
+            failureThreshold: 6
+            successThreshold: 1
+            timeoutSeconds: 10            
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

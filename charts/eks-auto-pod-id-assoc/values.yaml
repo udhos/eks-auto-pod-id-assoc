@@ -1,0 +1,97 @@
+# Default values for eks-auto-pod-id-assoc.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: udhos/eks-auto-pod-id-assoc
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# redeploy:
+#
+# 'always': adds a random annotation to Deployment in
+#           order to redeploy the pods whenever the chart is reapplied.
+#
+# 'reconfig': adds annotations with checksums of configurations in
+#             order to redeploy the pods whenever configuration is changed.
+#
+# https://v3.helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+#
+redeploy: always
+
+# this strategy prevents from running more than 1 pod
+strategy:
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
+  type: RollingUpdate
+
+serviceAccountAnnotations: {}
+  #annotations:
+  #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+podHealthCheck:
+  port: 8080
+  path: /health
+
+# add custom labels to deployment pods
+customLabels:
+  app: eks-auto-pod-id-assoc
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 300Mi
+    ephemeral-storage: 500Mi
+  limits:
+    cpu: 200m
+    memory: 300Mi
+    ephemeral-storage: 500Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+#
+# See: https://stackoverflow.com/questions/72816925/helm-templating-in-configmap-for-values-yaml
+#
+configMapProperties:
+  CONFIG_FILE: /etc/eks-auto-pod-id-assoc/config.yaml
+  INTERVAL: 1m
+  RUN_ONCE: "false"
+  DRY: "true"
+  ADDR: :8080
+  HEALTH_PATH: /health
+  METRICS_PATH: /metrics
+  METRICS_NAMESPACE:  ""
+  LATENCY_BUCKETS_SECONDS: ".005, .01, .025, .05, .1, .25, .5, 1, 2.5"
+
+configDir:
+  config.yaml: |
+    clusters:
+
+      # sample in-cluster config
+      - region: us-east-1
+        self: true
+        cluster_name: my-cluster               # <--- put exact EKS cluster name here
+        annotation: eks.amazonaws.com/role-arn

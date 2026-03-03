@@ -31,4 +31,8 @@ go.work.sum
 # .idea/
 # .vscode/
 
+go.work
+charts-tmp
 docker-push.sh
+docker-push-datadog.sh
+orchestrion.tool.go
