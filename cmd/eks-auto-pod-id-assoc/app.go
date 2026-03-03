@@ -405,38 +405,3 @@ func podIdentityAssociationExcludeServiceAccounts(list []podIdentityAssociation,
 	}
 	return result
 }
-
-type clientInterface interface {
-	listEKSClusters(roleArn, region string) ([]string, error)
-
-	// listServiceAccounts with self=true uses local client configuration.
-	// with self=false, it builds client configuration for EKS using roleArn.
-	// note that self=true requires exact clusterName provided in config as
-	// cluster_name to be used in the other methods, since the clusterName
-	// cannot be discovered.
-	listServiceAccounts(self bool, roleArn, region,
-		clusterName, annotationKey string) ([]serviceAccount, error)
-
-	listPodIdentityAssociations(self bool, roleArn, region,
-		clusterName string) ([]podIdentityAssociation, error)
-
-	createPodIdentityAssociation(self bool, roleArn, region,
-		clusterName, serviceAccountNamespace, serviceAccountName,
-		serviceAccountRoleArn string) error
-
-	deletePodIdentityAssociation(self bool, roleArn, region,
-		clusterName, associationID string) error
-}
-
-type serviceAccount struct {
-	Name       string `yaml:"name"`
-	Namespace  string `yaml:"namespace"`
-	AwsRoleArn string `yaml:"aws_role_arn"`
-}
-
-type podIdentityAssociation struct {
-	AssociationID           string `yaml:"association_id"`
-	ClusterName             string `yaml:"cluster_name"`
-	ServiceAccountNamespace string `yaml:"service_account_namespace"`
-	ServiceAccountName      string `yaml:"service_account_name"`
-}
