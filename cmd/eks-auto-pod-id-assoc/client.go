@@ -51,19 +51,46 @@ type podIdentityAssociation struct {
 
 func newRealClient(prog string, dry bool, metrics metrics) *realClient {
 	return &realClient{
-		prog:    prog,
-		dry:     dry,
-		metrics: metrics,
+		prog:            prog,
+		dry:             dry,
+		metrics:         metrics,
+		kubeClientCache: map[string]*kubernetes.Clientset{},
+		eksClientCache:  map[string]*eks.Client{},
 	}
 }
 
 type realClient struct {
-	prog    string
-	dry     bool
-	metrics metrics
+	prog            string
+	dry             bool
+	metrics         metrics
+	kubeClientCache map[string]*kubernetes.Clientset
+	eksClientCache  map[string]*eks.Client
+}
+
+func kubeClientCacheKey(self bool, roleArn, region,
+	clusterName string) string {
+	return fmt.Sprintf("%t-%s-%s-%s", self, roleArn, region, clusterName)
+}
+
+func (c *realClient) getKubeClientCache(self bool, roleArn, region,
+	clusterName string) *kubernetes.Clientset {
+	key := kubeClientCacheKey(self, roleArn, region, clusterName)
+	return c.kubeClientCache[key]
+}
+
+func (c *realClient) putKubeClientCache(self bool, roleArn, region,
+	clusterName string, clientset *kubernetes.Clientset) {
+	key := kubeClientCacheKey(self, roleArn, region, clusterName)
+	c.kubeClientCache[key] = clientset
 }
 
 func (c *realClient) getEKSClient(roleArn, region string) (*eks.Client, error) {
+
+	cacheKey := fmt.Sprintf("%s-%s", roleArn, region)
+	if eksClient := c.eksClientCache[cacheKey]; eksClient != nil {
+		return eksClient, nil
+	}
+
 	options := awsconfig.Options{
 		Region:          region,
 		RoleArn:         roleArn,
@@ -73,7 +100,12 @@ func (c *realClient) getEKSClient(roleArn, region string) (*eks.Client, error) {
 	if errCfg != nil {
 		return nil, fmt.Errorf("could not get aws config: %w", errCfg)
 	}
-	return eks.NewFromConfig(awsCfg.AwsConfig), nil
+
+	eksClient := eks.NewFromConfig(awsCfg.AwsConfig)
+
+	c.eksClientCache[cacheKey] = eksClient
+
+	return eksClient, nil
 }
 
 func (c *realClient) listEKSClusters(roleArn,
@@ -109,9 +141,20 @@ func (c *realClient) listEKSClusters(roleArn,
 
 func (c *realClient) getKubeClient(self bool, roleArn,
 	region, clusterName string) (*kubernetes.Clientset, error) {
+
+	if clientset := c.getKubeClientCache(self, roleArn, region,
+		clusterName); clientset != nil {
+		return clientset, nil
+	}
+
 	if self {
 		// we are running in-cluster or with .kube/config
-		return kubeclient.New(kubeclient.Options{})
+		clientset, err := kubeclient.New(kubeclient.Options{})
+		if err == nil {
+			c.putKubeClientCache(self, roleArn, region, clusterName,
+				clientset)
+		}
+		return clientset, err
 	}
 
 	// do not attempt in-cluster or .kube/config,
@@ -157,7 +200,11 @@ func (c *realClient) getKubeClient(self bool, roleArn,
 		ClusterEndpoint: clusterEndpoint,
 	}
 
-	return eksclient.New(eksclientOptions)
+	clientset, err := eksclient.New(eksclientOptions)
+	if err == nil {
+		c.putKubeClientCache(self, roleArn, region, clusterName, clientset)
+	}
+	return clientset, err
 }
 
 func (c *realClient) listServiceAccounts(self bool, roleArn, region,
