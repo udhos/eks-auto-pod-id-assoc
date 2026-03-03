@@ -167,8 +167,8 @@ func (c *realClient) listServiceAccounts(self bool, roleArn, region,
 		result = append(result, sa)
 	}
 
-	infof("%s: region=%q annotation=%s found service accounts: annotated=%d total=%d",
-		me, region, annotationKey, len(result), len(list.Items))
+	infof("%s: region=%q cluster=%q annotation=%s found service accounts: annotated=%d total=%d",
+		me, region, clusterName, annotationKey, len(result), len(list.Items))
 
 	return result, nil
 }
@@ -208,7 +208,8 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 		}
 	}
 
-	infof("%s: region=%q found pod identity associations: %d", me, region, len(piaList))
+	infof("%s: region=%q cluster=%q found pod identity associations: %d",
+		me, region, clusterName, len(piaList))
 
 	return piaList, nil
 }
