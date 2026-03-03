@@ -17,9 +17,10 @@
   * [Topology example 1: Running within single cluster](#topology-example-1-running-within-single-cluster)
   * [Topology example 2: Running in a server with ~/\.kube/config managing one cluster](#topology-example-2-running-in-a-server-with-kubeconfig-managing-one-cluster)
   * [Topology example 3: Running in a server with AWS credentials managing multiple clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multiple-clusters)
-* [Docker hub](#docker-hub)
+* [Docker Hub](#docker-hub)
 * [References](#references)
 
+Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
 # Building and running
 
 Quick build:
@@ -42,7 +43,7 @@ Just run the binary:
 eks-auto-pod-id-assoc
 ```
 
-Running docker image:
+Running Docker image:
 
 ```bash
 docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
@@ -50,13 +51,13 @@ docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 
 # How it works
 
-`eks-auto-pod-id-assoc` automatically synchronizes Associations from Service Accounts:
+`eks-auto-pod-id-assoc` automatically synchronizes [EKS Pod Identity Associations](https://docs.aws.amazon.com/eks/latest/eksctl/pod-identity-associations.html) from K8S Service Accounts:
 
 - If a ServiceAccount is created with annotation `eks.amazonaws.com/role-arn`, an Association is also created.
 
 - If a ServiceAccount is deleted or the annotation `eks.amazonaws.com/role-arn` is removed, the Association is removed.
 
-Example of an ServiceAccount that causes the creation of an Association:
+Example of a ServiceAccount that causes the creation of an Association:
 
 ```yaml
 apiVersion: v1
@@ -102,7 +103,7 @@ field | description
 role_arn | The role that must be used to make AWS API calls. If not provided, the default behavior is to use the credentials chain.
 region | The region to make AWS API calls.
 cluster_name | Regular expression for the cluster name. If you want to specify one specific cluster, anchor it like this: `^my-cluster$`. An empty/undefined `cluster_name` will match ALL clusters in the region. NOTICE: When `self=true`, cluster_name is no longer a regex and must be specified as an exact cluster name.
-self | Use `self=false` (default) when the tool must acquire kubernetes credentials directly from each targeted cluster; it will need permission to perform `eks:ListClusters` and `eks:DescribeCluster` on the clusters; this is useful when the tool does not have local credentials (like `~/.kube/config`). Set `self=true` to use local credentials (like `~/.kube/config`) instead of generating kubernetes credentials by querying `DescribeCluster`.
+self | Use `self=false` (default) when the tool must acquire Kubernetes credentials directly from each targeted cluster; it will need permission to perform `eks:ListClusters` and `eks:DescribeCluster` on the clusters; this is useful when the tool does not have local credentials (like `~/.kube/config`). Set `self=true` to use local credentials (like `~/.kube/config`) instead of generating Kubernetes credentials by querying `DescribeCluster`.
 annotation | The annotation used in Service Accounts that must be synced. Default is `eks.amazonaws.com/role-arn`.
 exclude_service_accounts | List of service accounts to exclude from synchronization. Fields `name` and `namespace` are regular expressions. Empty/undefined field match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the Association from synchronization. The tool will skip creation and deletion of Association for a match.
 restrict_roles | Define a list of roles that are restricted. A restricted role can only be used by Service Accounts that are allowed under the field `allow`. The tool will ignore a Service Account attempting to use a restricted role without being allowed. The roles are processed in the order listed under `restrict_roles`. Only the first matching role regex is used.
@@ -160,7 +161,7 @@ namespace: ""   # an empty regex field matches anything
 
 namespace: _    # this negates the empty regex, thus it matches NOTHING
 
-namespace: ^$   # this matches only the empty namespace, impossible in kubernetes, so it matches NOTHING
+namespace: ^$   # this matches only the empty namespace, impossible in Kubernetes, so it matches NOTHING
 
 namespace: _^$  # negates the previous rule, so it matches anything
 ```
@@ -188,10 +189,10 @@ The tool needs these permissions on every cluster it should synchronize.
 Permission | Comment
 -- | --
 k8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discovery of existing Service Accounts.
-`eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate kubernetes credentials for the k8s API server.
+`eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the k8s API server.
 `eks:ListPodIdentityAssociations` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
-`iam:PassRole` and `"iam:GetRole"` | Permissions required to create Assosciations on AWS EKS.
+`iam:PassRole` and `"iam:GetRole"` | Permissions required to create Associations on AWS EKS.
 
 See examples:
 
@@ -261,9 +262,9 @@ clusters:
   cluster_name: ^my- # auto discover all clusters with name my-
 ```
 
-# Docker hub
+# Docker Hub
 
-We provide some built docker images in Docker hub:
+We provide some built container images in Docker Hub:
 
 https://hub.docker.com/r/udhos/eks-auto-pod-id-assoc
 
