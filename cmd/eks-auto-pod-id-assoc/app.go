@@ -52,7 +52,7 @@ func dumpClusters(clusterList []cluster, label string) {
 	fmt.Fprintln(out, string(yamlBytes))
 }
 
-func (a *application) reconcileOneClusters(cl cluster) {
+func (a *application) reconcileOneCluster(cl cluster) {
 
 	clusterLabel := fmt.Sprintf("role=%q region=%q cluster=%q",
 		cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
@@ -127,7 +127,7 @@ func (a *application) reconcileClusters(clusterList []cluster) {
 
 		begin := time.Now()
 
-		a.reconcileOneClusters(cl)
+		a.reconcileOneCluster(cl)
 
 		elap := time.Since(begin)
 
