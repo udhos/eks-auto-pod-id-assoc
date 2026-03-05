@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"go.yaml.in/yaml/v4"
@@ -41,9 +42,14 @@ func (a *application) run() {
 }
 
 func dumpClusters(clusterList []cluster, label string) {
-	fmt.Println(label)
+
+	// slog by default writes to stderr, so we use it here.
+	// however if slog output is changed, we would be out of sync.
+	out := os.Stderr
+
+	fmt.Fprintln(out, label)
 	yamlBytes, _ := yaml.Marshal(clusterList)
-	fmt.Println(string(yamlBytes))
+	fmt.Fprintln(out, string(yamlBytes))
 }
 
 func (a *application) reconcileOneClusters(cl cluster) {
