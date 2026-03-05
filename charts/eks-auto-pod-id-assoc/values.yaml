@@ -94,3 +94,6 @@ configDir:
         self: true
         cluster_name: my-cluster               # <--- put exact EKS cluster name here
         annotation: eks.amazonaws.com/role-arn
+        exclude_service_accounts:
+          # exclude my own serviceAccount from any namespace
+          - name: ^eks-auto-pod-id-assoc$
