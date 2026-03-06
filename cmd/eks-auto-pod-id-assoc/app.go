@@ -92,13 +92,13 @@ func (a *application) updateInformers(clusterList []cluster) {
 
 		go func() {
 			errRun := newInf.Run()
-			errorf("updateInformers: informer exited: self=%t role=%q region=%q cluster=%q: %v",
+			infof("updateInformers: informer exited: self=%t role=%q region=%q cluster=%q: error:%v",
 				cl.Config.Self, cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName, errRun)
 		}()
 
 		a.informer[key] = &informer{informer: newInf}
 
-		errorf("updateInformers: informer started: self=%t role=%q region=%q cluster=%q",
+		infof("updateInformers: informer started: self=%t role=%q region=%q cluster=%q",
 			cl.Config.Self, cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
 	}
 
