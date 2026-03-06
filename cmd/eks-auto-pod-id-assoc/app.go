@@ -84,7 +84,16 @@ func (a *application) updateInformers(clusterList []cluster) {
 			Client: clientset,
 			OnUpdate: func(serviceAccounts []serviceaccountinformer.ServiceAccount) {
 				infof("OnUpdate: service accounts: %d", len(serviceAccounts))
-				a.informerCh <- struct{}{} // trigger cycle
+
+				// trigger cycle
+				select {
+				case a.informerCh <- struct{}{}:
+				// Signal sent successfully
+				default:
+					// Signal already pending in the unbuffered channel;
+					// because we use a boolean flag on the receiving side,
+					// we don't need to queue more.
+				}
 			},
 		}
 

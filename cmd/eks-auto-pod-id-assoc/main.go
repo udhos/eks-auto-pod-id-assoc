@@ -85,15 +85,24 @@ func main() {
 		// main loop
 		//
 
-		ticker := time.NewTicker(interval)
+		var needCycle bool
+
+		longTicker := time.NewTicker(interval) // periodic last resort cycle (usually 1min)
+
+		shortTicker := time.NewTicker(2 * time.Second) // coalescing/debouncing timer
+
 		for {
 			select {
-			case <-ticker.C: // periodic ticker triggers cycle
-				infof("main: triggered by %v ticker", interval)
-			case <-app.informerCh: // informer triggers cycle
-				infof("main: triggered by informer")
+			case <-longTicker.C: // periodic ticker triggers cycle
+				needCycle = true
+			case <-app.informerCh: // (unbuffered chan) service account informer triggers cycle
+				needCycle = true
+			case <-shortTicker.C:
+				if needCycle {
+					needCycle = false
+					app.run() // app.run is blocking
+				}
 			}
-			app.run()
 		}
 	}()
 
