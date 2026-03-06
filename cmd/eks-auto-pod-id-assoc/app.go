@@ -5,22 +5,32 @@ import (
 	"os"
 	"time"
 
+	"github.com/udhos/kube-informer-serviceaccount/serviceaccountinformer"
 	"go.yaml.in/yaml/v4"
 )
 
 type application struct {
-	cfg     config
-	client  clientInterface
-	server  httpServer
-	metrics metrics
+	cfg        config
+	client     clientInterface
+	server     httpServer
+	metrics    metrics
+	informer   map[string]*informer
+	informerCh chan struct{}
+}
+
+type informer struct {
+	informer *serviceaccountinformer.ServiceAccountInformer
+	stale    bool
 }
 
 func newApplication(cfg config, met metrics,
 	client clientInterface) *application {
 	app := &application{
-		cfg:     cfg,
-		client:  client,
-		metrics: met,
+		cfg:        cfg,
+		client:     client,
+		metrics:    met,
+		informer:   map[string]*informer{},
+		informerCh: make(chan struct{}),
 	}
 	return app
 }
@@ -36,9 +46,71 @@ func (a *application) run() {
 
 	dumpClusters(clusterList, "discovered clusters:")
 
+	a.updateInformers(clusterList)
+
 	a.reconcileClusters(clusterList)
 
 	dumpClusters(clusterList, "reconciled clusters:")
+}
+
+func (a *application) updateInformers(clusterList []cluster) {
+
+	// mark all informers as stale
+	for _, inf := range a.informer {
+		inf.stale = true
+	}
+
+	// create new informers
+	for _, cl := range clusterList {
+		key := fmt.Sprintf("%s %s %s", cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+		inf, found := a.informer[key]
+
+		if found {
+			inf.stale = false // found, not stale
+			continue
+		}
+
+		// create new informer
+
+		clientset, errKubeclient := a.client.getKubeClient(cl.Config.Self,
+			cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+		if errKubeclient != nil {
+			errorf("updateInformers: could not get kube client: self=%t role=%q region=%q cluster=%q: %v",
+				cl.Config.Self, cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName, errKubeclient)
+			continue
+		}
+
+		options := serviceaccountinformer.Options{
+			Client: clientset,
+			OnUpdate: func(serviceAccounts []serviceaccountinformer.ServiceAccount) {
+				infof("OnUpdate: service accounts: %d", len(serviceAccounts))
+				a.informerCh <- struct{}{} // trigger cycle
+			},
+		}
+
+		newInf := serviceaccountinformer.New(options)
+
+		go func() {
+			errRun := newInf.Run()
+			errorf("updateInformers: informer exited: self=%t role=%q region=%q cluster=%q: %v",
+				cl.Config.Self, cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName, errRun)
+		}()
+
+		a.informer[key] = &informer{informer: newInf}
+
+		errorf("updateInformers: informer started: self=%t role=%q region=%q cluster=%q",
+			cl.Config.Self, cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+	}
+
+	// remove stale informers
+	for k, inf := range a.informer {
+		if inf.stale {
+			inf.informer.Stop()
+			a.informer[k] = nil // help GC
+			delete(a.informer, k)
+			infof("updateInformers: stale informer deleted: %s", k)
+		}
+	}
 }
 
 func dumpClusters(clusterList []cluster, label string) {

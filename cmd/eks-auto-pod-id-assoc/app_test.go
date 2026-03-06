@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/segmentio/ksuid"
+	"k8s.io/client-go/kubernetes"
 )
 
 func TestDiscoveryRegion(t *testing.T) {
@@ -657,6 +658,11 @@ type mockCluster struct {
 	clusterName             string
 	serviceAccounts         []serviceAccount
 	podIdentityAssociations []podIdentityAssociation
+}
+
+func (c *mockClient) getKubeClient(_ bool, _,
+	_, _ string) (*kubernetes.Clientset, error) {
+	return nil, errors.New("mockClient.getKubeClient: NOT IMPLEMENTED")
 }
 
 func (c *mockClient) listEKSClusters(_, region string) ([]string, error) {

@@ -15,6 +15,9 @@ import (
 )
 
 type clientInterface interface {
+	getKubeClient(self bool, roleArn,
+		region, clusterName string) (*kubernetes.Clientset, error)
+
 	listEKSClusters(roleArn, region string) ([]string, error)
 
 	// listServiceAccounts with self=true uses local client configuration.

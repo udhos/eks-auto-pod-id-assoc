@@ -86,7 +86,13 @@ func main() {
 		//
 
 		ticker := time.NewTicker(interval)
-		for range ticker.C {
+		for {
+			select {
+			case <-ticker.C: // periodic ticker triggers cycle
+				infof("main: triggered by %v ticker", interval)
+			case <-app.informerCh: // informer triggers cycle
+				infof("main: triggered by informer")
+			}
 			app.run()
 		}
 	}()
