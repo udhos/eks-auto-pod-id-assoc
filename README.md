@@ -208,7 +208,7 @@ K8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["list"] | Discover
 `eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the K8s API server.
 `eks:ListPodIdentityAssociations` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
-`iam:PassRole` and `"iam:GetRole"` | Permissions required to create Associations on AWS EKS.
+`iam:PassRole` and `iam:GetRole` | Permissions required to create Associations on AWS EKS.
 
 See examples:
 
