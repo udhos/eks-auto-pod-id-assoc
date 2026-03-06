@@ -34,6 +34,7 @@ Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
 - **Scale effortlessly** - Manage 1 cluster or multiple with a single config; regex-based discovery scales automatically.
 - **Built-in security guardrails** - Declare which roles each ServiceAccount can use; prevent privilege escalation across applications.
 - **GitOps ready** - Codify your entire infrastructure as Kubernetes manifests; works with any CI/CD pipeline.
+- **Ephemeral cluster friendly** - Works well with clusters that are recreated frequently; associations are re-synced automatically whenever the cluster is rebuilt.
 - **Flexible deployment** - Run inside the cluster, on a management host, or across multiple AWS accounts without code changes.
 
 # Building and running
