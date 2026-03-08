@@ -117,6 +117,8 @@ clusters:
       - role_arn: ^arn:aws:iam::123456789012:role/role2$
         allow:
           - name: ^sa5$
+    pod_identity_association_tags:
+      managed-by: eks-auto-pod-id-assoc
 ```
 
 field | description
