@@ -74,6 +74,10 @@ docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 
 - If a ServiceAccount is deleted or the annotation `eks.amazonaws.com/role-arn` is removed, the Association is removed.
 
+In order to react quickly, the tool watches Kubernetes API server for any changes in Service Accounts, and takes action immediately.
+
+However to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically, with configurable period, 1min by default.
+
 Example of a ServiceAccount that causes the creation of an Association:
 
 ```yaml
@@ -124,6 +128,7 @@ self | `self=true` means the tool must get API server credentials from local env
 annotation | The annotation used in Service Accounts that must be synced. Default is `eks.amazonaws.com/role-arn`.
 exclude_service_accounts | List of service accounts to exclude from synchronization. This option is useful if you want to exclude some Service Accounts from auto synchronization because they are managed elsewhere. Fields `name` and `namespace` are regular expressions. Empty/undefined field match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the Association from synchronization. The tool will skip creation and deletion of Association for a match.
 restrict_roles | Define a list of roles that are restricted. A restricted role can only be used by Service Accounts that are allowed under the field `allow`. The tool will ignore a Service Account attempting to use a restricted role without being allowed. The roles are processed in the order listed under `restrict_roles`. Only the first matching role regex is used.
+pod_identity_association_tags | Tags added to Associations. Default is `managed-by=eks-auto-pod-id-assoc`.
 
 # Regular expressions
 

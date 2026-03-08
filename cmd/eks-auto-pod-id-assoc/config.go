@@ -12,13 +12,14 @@ type config struct {
 }
 
 type configCluster struct {
-	RoleArn                string                `yaml:"role_arn"`
-	Region                 string                `yaml:"region"`
-	ClusterName            string                `yaml:"cluster_name"`
-	Self                   bool                  `yaml:"self"`
-	Annotation             string                `yaml:"annotation"`
-	ExcludeServiceAccounts []matchServiceAccount `yaml:"exclude_service_accounts"`
-	RestrictRoles          []restrictRole        `yaml:"restrict_roles"`
+	RoleArn                    string                `yaml:"role_arn"`
+	Region                     string                `yaml:"region"`
+	ClusterName                string                `yaml:"cluster_name"`
+	Self                       bool                  `yaml:"self"`
+	Annotation                 string                `yaml:"annotation"`
+	ExcludeServiceAccounts     []matchServiceAccount `yaml:"exclude_service_accounts"`
+	RestrictRoles              []restrictRole        `yaml:"restrict_roles"`
+	PodIdentityAssociationTags map[string]string     `yaml:"pod_identity_association_tags"`
 }
 
 type restrictRole struct {

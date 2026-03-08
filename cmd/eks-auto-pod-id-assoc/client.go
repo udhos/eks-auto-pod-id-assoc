@@ -33,7 +33,7 @@ type clientInterface interface {
 
 	createPodIdentityAssociation(self bool, roleArn, region,
 		clusterName, serviceAccountNamespace, serviceAccountName,
-		serviceAccountRoleArn string) error
+		serviceAccountRoleArn string, tags map[string]string) error
 
 	deletePodIdentityAssociation(self bool, roleArn, region,
 		clusterName, associationID string) error
@@ -270,10 +270,11 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 
 	var maxResults int32 = 100 // 1..100
 
-	paginator := eks.NewListPodIdentityAssociationsPaginator(clientEks, &eks.ListPodIdentityAssociationsInput{
-		ClusterName: aws.String(clusterName),
-		MaxResults:  aws.Int32(maxResults),
-	})
+	paginator := eks.NewListPodIdentityAssociationsPaginator(clientEks,
+		&eks.ListPodIdentityAssociationsInput{
+			ClusterName: aws.String(clusterName),
+			MaxResults:  aws.Int32(maxResults),
+		})
 
 	var piaList []podIdentityAssociation
 
@@ -299,8 +300,13 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	return piaList, nil
 }
 
+var defaultTags = map[string]string{
+	"managed-by": "eks-auto-pod-id-assoc",
+}
+
 func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
-	clusterName, serviceAccountNamespace, serviceAccountName, serviceAccountRoleArn string) error {
+	clusterName, serviceAccountNamespace, serviceAccountName,
+	serviceAccountRoleArn string, tags map[string]string) error {
 
 	const me = "createPodIdentityAssociation"
 
@@ -309,11 +315,16 @@ func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
 		return fmt.Errorf("%s: could not get EKS client: %w", me, errEks)
 	}
 
+	if len(tags) == 0 {
+		tags = defaultTags
+	}
+
 	input := &eks.CreatePodIdentityAssociationInput{
 		ClusterName:    aws.String(clusterName),
 		Namespace:      aws.String(serviceAccountNamespace),
 		RoleArn:        aws.String(serviceAccountRoleArn),
 		ServiceAccount: aws.String(serviceAccountName),
+		Tags:           tags,
 	}
 
 	var resp *eks.CreatePodIdentityAssociationOutput

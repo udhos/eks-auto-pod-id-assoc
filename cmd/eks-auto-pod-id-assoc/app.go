@@ -151,7 +151,8 @@ func (a *application) reconcileOneCluster(cl cluster) {
 			begin := time.Now()
 
 			err := a.client.createPodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
-				cl.Config.Region, cl.Config.ClusterName, sa.Namespace, sa.Name, sa.AwsRoleArn)
+				cl.Config.Region, cl.Config.ClusterName, sa.Namespace, sa.Name, sa.AwsRoleArn,
+				cl.Config.PodIdentityAssociationTags)
 
 			elap := time.Since(begin)
 
