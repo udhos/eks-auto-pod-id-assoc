@@ -75,6 +75,8 @@ affinity: {}
 # See: https://stackoverflow.com/questions/72816925/helm-templating-in-configmap-for-values-yaml
 #
 configMapProperties:
+  LOG_LEVEL: info
+  LOG_JSON: "false"
   CONFIG_FILE: /etc/eks-auto-pod-id-assoc/config.yaml
   INTERVAL: 1m
   RUN_ONCE: "false"

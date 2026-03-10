@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -40,6 +41,14 @@ func main() {
 	}
 
 	env := envconfig.NewSimple(me)
+
+	//
+	// log level and format
+	//
+	levelStr := strings.ToLower(env.String("LOG_LEVEL", "info"))
+	isJSON := env.Bool("LOG_JSON", false)
+	setupLogging(levelStr, isJSON)
+
 	configFile := env.String("CONFIG_FILE", "config.yaml")
 	cfg, err := loadConfigFromFile(configFile)
 	if err != nil {
