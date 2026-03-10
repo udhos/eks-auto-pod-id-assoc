@@ -207,6 +207,7 @@ METRICS_NAMESPACE | "" | Metrics namespace.
 LATENCY_BUCKETS_SECONDS | ".005, .01, .025, .05, .1, .25, .5, 1, 2.5" | Prometheus histogram latency buckets in seconds.
 DOGSTATSD_SAMPLE_RATE | 1.0 | Dogstatsd sample rate.
 DOGSTATSD_ENABLE | false | Enable Dogstatsd metrics.
+DD_AGENT_HOST | localhost | Dogstatsd agent hostname.
 
 # Permissions
 

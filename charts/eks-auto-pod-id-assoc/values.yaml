@@ -86,6 +86,7 @@ configMapProperties:
   LATENCY_BUCKETS_SECONDS: ".005, .01, .025, .05, .1, .25, .5, 1, 2.5"
   DOGSTATSD_SAMPLE_RATE: "1.0"
   DOGSTATSD_ENABLE: "false"
+  DD_AGENT_HOST: localhost
 
 configDir:
   config.yaml: |
