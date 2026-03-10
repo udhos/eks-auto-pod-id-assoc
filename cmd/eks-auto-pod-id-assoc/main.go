@@ -60,8 +60,11 @@ func main() {
 	metricsNamespace := env.String("METRICS_NAMESPACE", "")
 	latencyBucketsSeconds := env.Float64Slice("LATENCY_BUCKETS_SECONDS",
 		defaultLatencyBucketsSeconds)
+	dogstatsdSampleRate := env.Float64("DOGSTATSD_SAMPLE_RATE", 1.0)
+	dogstatsdEnable := env.Bool("DOGSTATSD_ENABLE", false)
 
-	met := newMetrics(metricsNamespace, latencyBucketsSeconds)
+	met := newMetrics(metricsNamespace, latencyBucketsSeconds,
+		dogstatsdSampleRate, dogstatsdEnable)
 
 	app := newApplication(cfg, met, newRealClient(me, dry, met))
 

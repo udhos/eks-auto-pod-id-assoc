@@ -33,8 +33,11 @@ clusters:
 	}
 
 	const namespace = ""
+	const sampleRate = 1.0
+	const dogstatsEnable = false
 
-	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds, sampleRate,
+		dogstatsEnable)
 
 	app := newApplication(cfg, met, client)
 
@@ -74,8 +77,11 @@ clusters:
 	}
 
 	const namespace = ""
+	const sampleRate = 1.0
+	const dogstatsEnable = false
 
-	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds, sampleRate,
+		dogstatsEnable)
 
 	app := newApplication(cfg, met, client)
 
@@ -108,8 +114,11 @@ clusters:
 	client := newMockClient()
 
 	const namespace = ""
+	const sampleRate = 1.0
+	const dogstatsEnable = false
 
-	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds, sampleRate,
+		dogstatsEnable)
 
 	app := newApplication(cfg, met, client)
 
@@ -203,8 +212,11 @@ clusters:
 	client := newMockClient()
 
 	const namespace = ""
+	const sampleRate = 1.0
+	const dogstatsEnable = false
 
-	met := newMetrics(namespace, defaultLatencyBucketsSeconds)
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds, sampleRate,
+		dogstatsEnable)
 
 	app := newApplication(cfg, met, client)
 

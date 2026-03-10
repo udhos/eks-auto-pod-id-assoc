@@ -84,6 +84,8 @@ configMapProperties:
   METRICS_PATH: /metrics
   METRICS_NAMESPACE:  ""
   LATENCY_BUCKETS_SECONDS: ".005, .01, .025, .05, .1, .25, .5, 1, 2.5"
+  DOGSTATSD_SAMPLE_RATE: "1.0"
+  DOGSTATSD_ENABLE: "false"
 
 configDir:
   config.yaml: |

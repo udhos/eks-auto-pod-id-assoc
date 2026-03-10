@@ -6,10 +6,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/udhos/dogstatsdclient/dogstatsdclient"
 )
 
 type metrics struct {
-	registry *prometheus.Registry
+	statsdClient *dogstatsdclient.Client
+	sampleRate   float64
+	registry     *prometheus.Registry
 
 	serviceAccounts         *prometheus.GaugeVec
 	podIdentityAssociations *prometheus.GaugeVec
@@ -18,30 +21,87 @@ type metrics struct {
 	apiLatency              *prometheus.HistogramVec
 }
 
+const (
+	metricServiceAccounts         = "service_accounts"
+	metricPodIdentityAssociations = "pod_identity_associations"
+	metricDiscoverLatency         = "discover_latency_seconds"
+	metricReconcileLatency        = "reconcile_latency_seconds"
+	metricAPILatency              = "api_latency_seconds"
+
+	labelKeyCluster      = "cluster"
+	labelKeyIgnoreReason = "ignore_reason"
+	labelKeyAPI          = "api"
+	labelKeyStatus       = "status"
+)
+
+func tag(key, value string) string {
+	return key + ":" + value
+}
+
 func (m metrics) recordServiceAccounts(cluster,
 	ignoreReason string, value float64) {
+
+	if m.statsdClient != nil {
+		tags := []string{tag(labelKeyCluster, cluster),
+			tag(labelKeyIgnoreReason, ignoreReason)}
+		m.statsdClient.Gauge(metricServiceAccounts, value, tags, m.sampleRate)
+	}
+
 	m.serviceAccounts.WithLabelValues(cluster,
 		ignoreReason).Set(value)
 }
 
 func (m metrics) recordPodIdentityAssociations(cluster,
 	ignoreReason string, value float64) {
+
+	if m.statsdClient != nil {
+		tags := []string{tag(labelKeyCluster, cluster),
+			tag(labelKeyIgnoreReason, ignoreReason)}
+		m.statsdClient.Gauge(metricPodIdentityAssociations, value, tags,
+			m.sampleRate)
+	}
+
 	m.podIdentityAssociations.WithLabelValues(cluster,
 		ignoreReason).Set(value)
 }
 
-func (m metrics) recordDiscoverLatency(cluster string, elapsed time.Duration) {
+func (m metrics) recordDiscoverLatency(cluster string,
+	elapsed time.Duration) {
 	sec := float64(elapsed) / float64(time.Second)
+
+	if m.statsdClient != nil {
+		tags := []string{tag(labelKeyCluster, cluster)}
+		m.statsdClient.Distribution(metricDiscoverLatency, sec, tags,
+			m.sampleRate)
+	}
+
 	m.discoverLatency.WithLabelValues(cluster).Set(sec)
 }
 
-func (m metrics) recordReconcileLatency(cluster string, elapsed time.Duration) {
+func (m metrics) recordReconcileLatency(cluster string,
+	elapsed time.Duration) {
 	sec := float64(elapsed) / float64(time.Second)
+
+	if m.statsdClient != nil {
+		tags := []string{tag(labelKeyCluster, cluster)}
+		m.statsdClient.Distribution(metricReconcileLatency, sec, tags,
+			m.sampleRate)
+	}
+
 	m.reconcileLatency.WithLabelValues(cluster).Set(sec)
 }
 
-func (m metrics) recordAPILatency(cluster, api, status string, elapsed time.Duration) {
+func (m metrics) recordAPILatency(cluster, api, status string,
+	elapsed time.Duration) {
 	sec := float64(elapsed) / float64(time.Second)
+
+	if m.statsdClient != nil {
+		tags := []string{tag(labelKeyCluster, cluster), tag(labelKeyAPI, api),
+			tag(labelKeyStatus, status)}
+		m.statsdClient.Distribution(metricAPILatency, sec, tags,
+			m.sampleRate)
+	}
+
 	m.apiLatency.WithLabelValues(cluster, api, status).Observe(sec)
 }
 
@@ -68,12 +128,28 @@ func getAPIStatus(err error) string {
 	return apiStatusError
 }
 
-func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
+func newMetrics(namespace string, latencyBucketsSeconds []float64,
+	sampleRate float64, dogstatsdEnable bool) metrics {
 	registry := prometheus.NewRegistry()
 
 	const subsystem = ""
 
+	var c *dogstatsdclient.Client
+
+	if dogstatsdEnable {
+		var errClient error
+		c, errClient = dogstatsdclient.New(dogstatsdclient.Options{
+			Namespace: namespace,
+		})
+		if errClient != nil {
+			errorf("newMetrics: dogstatsd client error: %v", errClient)
+		}
+	}
+
 	return metrics{
+		statsdClient: c,
+		sampleRate:   sampleRate,
+
 		registry: registry,
 
 		serviceAccounts: newGaugeVec(
@@ -81,10 +157,10 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Subsystem: subsystem,
-				Name:      "service_accounts",
+				Name:      metricServiceAccounts,
 				Help:      "Number of Service Accounts.",
 			},
-			[]string{"cluster", "ignore_reason"},
+			[]string{labelKeyCluster, labelKeyIgnoreReason},
 		),
 
 		podIdentityAssociations: newGaugeVec(
@@ -92,10 +168,10 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Subsystem: subsystem,
-				Name:      "pod_identity_associations",
+				Name:      metricPodIdentityAssociations,
 				Help:      "Number of Pod Identity Associations.",
 			},
-			[]string{"cluster", "ignore_reason"},
+			[]string{labelKeyCluster, labelKeyIgnoreReason},
 		),
 
 		discoverLatency: newGaugeVec(
@@ -103,10 +179,10 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Subsystem: subsystem,
-				Name:      "discover_latency_seconds",
+				Name:      metricDiscoverLatency,
 				Help:      "Latency of discovery.",
 			},
-			[]string{"cluster"},
+			[]string{labelKeyCluster},
 		),
 
 		reconcileLatency: newGaugeVec(
@@ -114,10 +190,10 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Subsystem: subsystem,
-				Name:      "reconcile_latency_seconds",
+				Name:      metricReconcileLatency,
 				Help:      "Latency of reconcile.",
 			},
-			[]string{"cluster"},
+			[]string{labelKeyCluster},
 		),
 
 		apiLatency: newHistoryVec(
@@ -125,11 +201,11 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64) metrics {
 			prometheus.HistogramOpts{
 				Namespace: namespace,
 				Subsystem: subsystem,
-				Name:      "api_latency_seconds",
+				Name:      metricAPILatency,
 				Help:      "Latency of API calls in seconds.",
 				Buckets:   latencyBucketsSeconds,
 			},
-			[]string{"cluster", "api", "status"},
+			[]string{labelKeyCluster, labelKeyAPI, labelKeyStatus},
 		),
 	}
 }
