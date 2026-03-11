@@ -89,6 +89,7 @@ configMapProperties:
   DOGSTATSD_SAMPLE_RATE: "1.0"
   DOGSTATSD_ENABLE: "false"
   DD_AGENT_HOST: localhost
+  DD_SERVICE: eks-auto-pod-id-assoc
 
 configDir:
   config.yaml: |
