@@ -131,15 +131,14 @@ type clientPIAMock struct {
 	delay time.Duration
 }
 
-func (m *clientPIAMock) createPodIdentityAssociation(self bool, roleArn, region,
-	clusterName, serviceAccountNamespace, serviceAccountName,
-	serviceAccountRoleArn string, tags map[string]string) error {
+func (m *clientPIAMock) createPodIdentityAssociation(_ bool, _, _,
+	_, _, _, _ string, _ map[string]string) error {
 	time.Sleep(m.delay)
 	return nil
 }
 
-func (m *clientPIAMock) deletePodIdentityAssociation(self bool, roleArn, region,
-	clusterName, associationID string) error {
+func (m *clientPIAMock) deletePodIdentityAssociation(_ bool, _, _,
+	_, _ string) error {
 	time.Sleep(m.delay)
 	return nil
 }
