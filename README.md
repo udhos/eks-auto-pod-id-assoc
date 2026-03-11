@@ -131,6 +131,7 @@ annotation | The annotation used in Service Accounts that must be synced. Defaul
 exclude_service_accounts | List of service accounts to exclude from synchronization. This option is useful if you want to exclude some Service Accounts from auto synchronization because they are managed elsewhere. Fields `name` and `namespace` are regular expressions. Empty/undefined field match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the Association from synchronization. The tool will skip creation and deletion of Association for a match.
 restrict_roles | Define a list of roles that are restricted. A restricted role can only be used by Service Accounts that are allowed under the field `allow`. The tool will ignore a Service Account attempting to use a restricted role without being allowed. The roles are processed in the order listed under `restrict_roles`. Only the first matching role regex is used.
 pod_identity_association_tags | Tags added to Associations. Default is `managed-by=eks-auto-pod-id-assoc`.
+max_concurrency | Limit concurrency level for EKS API operations (create/delete) over multiple Associations. Default is 5.
 
 # Regular expressions
 

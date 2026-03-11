@@ -13,6 +13,7 @@ require (
 	github.com/udhos/kube v1.0.9
 	github.com/udhos/kube-informer-serviceaccount v0.0.4
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
+	golang.org/x/sync v0.19.0
 	k8s.io/apimachinery v0.35.2
 	k8s.io/client-go v0.35.2
 )

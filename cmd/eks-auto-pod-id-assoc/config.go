@@ -20,7 +20,10 @@ type configCluster struct {
 	ExcludeServiceAccounts     []matchServiceAccount `yaml:"exclude_service_accounts"`
 	RestrictRoles              []restrictRole        `yaml:"restrict_roles"`
 	PodIdentityAssociationTags map[string]string     `yaml:"pod_identity_association_tags"`
+	MaxConcurrency             int                   `yaml:"max_concurrency"`
 }
+
+const defaultMaxConcurrency = 5
 
 type restrictRole struct {
 	RoleArn string                `yaml:"role_arn"`

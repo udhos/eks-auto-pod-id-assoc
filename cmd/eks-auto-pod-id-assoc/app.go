@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -149,10 +150,12 @@ func (a *application) reconcileOneCluster(cl cluster) {
 		infof("%s found missing service accounts: %d",
 			clusterLabel, len(missingServiceAccounts))
 
-		createPodIdentityAssociations(a.client, missingServiceAccounts,
+		createPodIdentityAssociations(context.TODO(),
+			a.client, missingServiceAccounts,
 			a.metrics, cl.Config.Self, cl.Config.RoleArn,
 			cl.Config.Region, cl.Config.ClusterName,
-			cl.Config.PodIdentityAssociationTags)
+			cl.Config.PodIdentityAssociationTags,
+			cl.Config.MaxConcurrency)
 	})
 
 	// delete associations for service accounts that don't exist
@@ -162,11 +165,12 @@ func (a *application) reconcileOneCluster(cl cluster) {
 	infof("%s found stale pod identity associations: %d",
 		clusterLabel, len(stalePIAs))
 
-	deletePodIdentityAssociations(a.client, stalePIAs, a.metrics,
+	deletePodIdentityAssociations(context.TODO(),
+		a.client, stalePIAs, a.metrics,
 		cl.Config.Self, cl.Config.RoleArn, cl.Config.Region,
-		cl.Config.ClusterName)
+		cl.Config.ClusterName, cl.Config.MaxConcurrency)
 
-	wg.Wait()
+	wg.Wait() // wait creations
 }
 
 func (a *application) reconcileClusters(clusterList []cluster) {

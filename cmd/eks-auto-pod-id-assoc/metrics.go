@@ -130,6 +130,7 @@ func getAPIStatus(err error) string {
 
 func newMetrics(namespace string, latencyBucketsSeconds []float64,
 	sampleRate float64, dogstatsdEnable bool) metrics {
+
 	registry := prometheus.NewRegistry()
 
 	const subsystem = ""

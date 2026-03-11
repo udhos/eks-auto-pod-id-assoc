@@ -11,7 +11,7 @@ func setupLogging(levelStr string, isJSON bool) {
 	// regardless of the level.
 	if isJSON {
 		level := getLevel(levelStr)
-		handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+		handler := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})
 		slog.SetDefault(slog.New(handler))
 		return
 	}
@@ -19,7 +19,7 @@ func setupLogging(levelStr string, isJSON bool) {
 	// If not JSON, but they want a non-info level, we override with Text.
 	if levelStr != "" && levelStr != "info" {
 		level := getLevel(levelStr)
-		handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+		handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
 		slog.SetDefault(slog.New(handler))
 		return
 	}
