@@ -135,73 +135,31 @@ func dumpClusters(clusterList []cluster, label string) {
 
 func (a *application) reconcileOneCluster(cl cluster) {
 
-	clusterLabel := fmt.Sprintf("role=%q region=%q cluster=%q",
-		cl.Config.RoleArn, cl.Config.Region, cl.Config.ClusterName)
+	clusterLabel := getClusterLabel(cl.Config.RoleArn, cl.Config.Region,
+		cl.Config.ClusterName)
 
 	// create associations for service accounts without associations
-	{
-		missingServiceAccounts := a.findMissingServiceAccounts(cl)
 
-		infof("%s found missing service accounts: %d",
-			clusterLabel, len(missingServiceAccounts))
+	missingServiceAccounts := a.findMissingServiceAccounts(cl)
 
-		for i, sa := range missingServiceAccounts {
-			label := fmt.Sprintf("%d/%d", i+1, len(missingServiceAccounts))
+	infof("%s found missing service accounts: %d",
+		clusterLabel, len(missingServiceAccounts))
 
-			begin := time.Now()
-
-			err := a.client.createPodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
-				cl.Config.Region, cl.Config.ClusterName, sa.Namespace, sa.Name, sa.AwsRoleArn,
-				cl.Config.PodIdentityAssociationTags)
-
-			elap := time.Since(begin)
-
-			a.metrics.recordAPILatency(cl.Config.ClusterName,
-				apiEksCreatePodIdentityAssociation, getAPIStatus(err),
-				elap)
-
-			if err != nil {
-				errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v: %v",
-					clusterLabel, label, sa.Name, sa.AwsRoleArn, elap, err)
-				continue
-			}
-
-			infof("%s created pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v",
-				clusterLabel, label, sa.Name, sa.AwsRoleArn, elap)
-		}
-	}
+	createPodIdentityAssociations(a.client, missingServiceAccounts,
+		a.metrics, cl.Config.Self, cl.Config.RoleArn,
+		cl.Config.Region, cl.Config.ClusterName,
+		cl.Config.PodIdentityAssociationTags)
 
 	// delete associations for service accounts that don't exist
-	{
-		stalePIAs := a.findStalePodIdentityAssociations(cl)
 
-		infof("%s found stale pod identity associations: %d",
-			clusterLabel, len(stalePIAs))
+	stalePIAs := a.findStalePodIdentityAssociations(cl)
 
-		for i, pia := range stalePIAs {
-			label := fmt.Sprintf("%d/%d", i+1, len(stalePIAs))
+	infof("%s found stale pod identity associations: %d",
+		clusterLabel, len(stalePIAs))
 
-			begin := time.Now()
-
-			err := a.client.deletePodIdentityAssociation(cl.Config.Self, cl.Config.RoleArn,
-				cl.Config.Region, pia.ClusterName, pia.AssociationID)
-
-			elap := time.Since(begin)
-
-			a.metrics.recordAPILatency(cl.Config.ClusterName,
-				apiEksDeletePodIdentityAssociation, getAPIStatus(err),
-				elap)
-
-			if err != nil {
-				errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v: %v",
-					clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap, err)
-				continue
-			}
-
-			infof("%s deleted pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v",
-				clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap)
-		}
-	}
+	deletePodIdentityAssociations(a.client, stalePIAs, a.metrics,
+		cl.Config.Self, cl.Config.RoleArn, cl.Config.Region,
+		cl.Config.ClusterName)
 }
 
 func (a *application) reconcileClusters(clusterList []cluster) {

@@ -14,6 +14,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type clientPIA interface {
+	createPodIdentityAssociation(self bool, roleArn, region,
+		clusterName, serviceAccountNamespace, serviceAccountName,
+		serviceAccountRoleArn string, tags map[string]string) error
+
+	deletePodIdentityAssociation(self bool, roleArn, region,
+		clusterName, associationID string) error
+}
+
 type clientInterface interface {
 	getKubeClient(self bool, roleArn,
 		region, clusterName string) (*kubernetes.Clientset, error)
@@ -31,12 +40,15 @@ type clientInterface interface {
 	listPodIdentityAssociations(self bool, roleArn, region,
 		clusterName string) ([]podIdentityAssociation, error)
 
-	createPodIdentityAssociation(self bool, roleArn, region,
-		clusterName, serviceAccountNamespace, serviceAccountName,
-		serviceAccountRoleArn string, tags map[string]string) error
+	/*
+		createPodIdentityAssociation(self bool, roleArn, region,
+			clusterName, serviceAccountNamespace, serviceAccountName,
+			serviceAccountRoleArn string, tags map[string]string) error
 
-	deletePodIdentityAssociation(self bool, roleArn, region,
-		clusterName, associationID string) error
+		deletePodIdentityAssociation(self bool, roleArn, region,
+			clusterName, associationID string) error
+	*/
+	clientPIA
 }
 
 type serviceAccount struct {
