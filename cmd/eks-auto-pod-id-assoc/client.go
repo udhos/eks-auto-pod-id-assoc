@@ -40,14 +40,6 @@ type clientInterface interface {
 	listPodIdentityAssociations(self bool, roleArn, region,
 		clusterName string) ([]podIdentityAssociation, error)
 
-	/*
-		createPodIdentityAssociation(self bool, roleArn, region,
-			clusterName, serviceAccountNamespace, serviceAccountName,
-			serviceAccountRoleArn string, tags map[string]string) error
-
-		deletePodIdentityAssociation(self bool, roleArn, region,
-			clusterName, associationID string) error
-	*/
 	clientPIA
 }
 

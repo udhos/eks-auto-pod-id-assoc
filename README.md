@@ -119,6 +119,7 @@ clusters:
           - name: ^sa5$
     pod_identity_association_tags:
       managed-by: eks-auto-pod-id-assoc
+    max_concurrency: 5
 ```
 
 field | description
