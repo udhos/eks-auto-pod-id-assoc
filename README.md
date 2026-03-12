@@ -24,6 +24,7 @@
 * [Helm chart](#helm-chart)
   * [Using the helm repository](#using-the-helm-repository)
   * [Using local chart](#using-local-chart)
+* [Contributing](#contributing)
 * [References](#references)
 
 Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc.go)
@@ -350,6 +351,16 @@ helm upgrade --install eks-auto-pod-id-assoc ./charts/eks-auto-pod-id-assoc
 # logs
 kubectl logs deploy/eks-auto-pod-id-assoc -f
 ```
+
+# Contributing
+
+Contributions are welcome!
+
+- [Discussions](https://github.com/udhos/eks-auto-pod-id-assoc/discussions): For "how-to" questions or architectural brainstorming.
+
+- [Issues](https://github.com/udhos/eks-auto-pod-id-assoc/issues): To report reproducible bugs or request specific features.
+
+- [Pull Requests](https://github.com/udhos/eks-auto-pod-id-assoc/pulls): Please ensure ./build.sh passes (including linting) before submitting.
 
 # References
 
