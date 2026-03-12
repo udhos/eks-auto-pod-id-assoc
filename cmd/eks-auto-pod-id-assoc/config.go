@@ -144,6 +144,15 @@ func loadConfig(data []byte) (config, error) {
 		}
 	}
 
+	for c, cl := range cfg.Clusters {
+
+		// add default tags to cluster
+		if len(cl.PodIdentityAssociationTags) == 0 {
+			cl.PodIdentityAssociationTags = defaultTags
+			cfg.Clusters[c] = cl // write back
+		}
+	}
+
 	return cfg, err
 }
 

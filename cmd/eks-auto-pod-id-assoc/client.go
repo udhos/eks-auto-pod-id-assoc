@@ -321,10 +321,6 @@ func (c *realClient) createPodIdentityAssociation(_ bool, roleArn, region,
 		return fmt.Errorf("%s: could not get EKS client: %w", me, errEks)
 	}
 
-	if len(tags) == 0 {
-		tags = defaultTags
-	}
-
 	input := &eks.CreatePodIdentityAssociationInput{
 		ClusterName:    aws.String(clusterName),
 		Namespace:      aws.String(serviceAccountNamespace),

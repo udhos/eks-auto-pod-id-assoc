@@ -682,6 +682,7 @@ clusters:
     cluster_name: ^example-cluster-2$
     purge_external_stale_associations: false
 `
+
 	cfg, err := loadConfig([]byte(conf))
 	if err != nil {
 		t.Fatalf("failed to load config: %v", err)
@@ -837,8 +838,6 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 
 				// Filter by tag
 				piaTags := cluster.getTags(pia.AssociationID)
-				errorf("cluster=%s pia=%v require=%v result=%t",
-					clusterName, pia, tags, hasTags(piaTags, tags))
 				if hasTags(piaTags, tags) {
 					list = append(list, pia)
 				}
