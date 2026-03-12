@@ -294,6 +294,33 @@ clusters:
   cluster_name: ^my- # auto discover all clusters with name my-
 ```
 
+# Metrics
+
+The metrics are avaiable both for Prometheus and for Datadog Dogstatsd.
+
+If you want to enable the metrics for Datadog/Dogstatsd, configure these env vars:
+
+```bash
+DOGSTATSD_ENABLE=true            ;# enable this
+DD_AGENT_HOST=datadog.datadog    ;# point to actual agent hostname
+DD_SERVICE=eks-auto-pod-id-assoc ;# you can customize this as you want
+```
+
+
+Metric                    | Prometheus | Datadog      | Dimensions             | Comment
+-- | -- | -- | -- | --
+service_accounts          | gauge      | gauge        | cluster, ignore_reason | Number of service accounts.
+pod_identity_associations | gauge      | gauge        | cluster, ignore_reason | Number of associations.
+discover_latency_seconds  | gauge      | distribution | cluster                | Discover latency.
+reconcile_latency_seconds | gauge      | distribution | cluster                | Reconcile latency.
+api_latency_seconds       | histogram  | distribution | cluster, api, status   | API latency.
+
+Possible dimensions values:
+
+- ignore_reason: not_ignored, excluded, restricted_role
+- status: ok, error
+- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation
+
 # Docker Hub
 
 We provide some built container images in Docker Hub:

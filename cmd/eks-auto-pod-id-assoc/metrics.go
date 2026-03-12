@@ -197,7 +197,7 @@ func newMetrics(namespace string, latencyBucketsSeconds []float64,
 			[]string{labelKeyCluster},
 		),
 
-		apiLatency: newHistoryVec(
+		apiLatency: newHistogramVec(
 			registry,
 			prometheus.HistogramOpts{
 				Namespace: namespace,
@@ -217,7 +217,7 @@ func newGaugeVec(registerer prometheus.Registerer,
 	return promauto.With(registerer).NewGaugeVec(opts, labelValues)
 }
 
-func newHistoryVec(registerer prometheus.Registerer,
+func newHistogramVec(registerer prometheus.Registerer,
 	opts prometheus.HistogramOpts,
 	labelValues []string) *prometheus.HistogramVec {
 	return promauto.With(registerer).NewHistogramVec(opts, labelValues)
