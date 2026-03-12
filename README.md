@@ -19,6 +19,7 @@
   * [Topology example 1: Running within single cluster](#topology-example-1-running-within-single-cluster)
   * [Topology example 2: Running in a server with ~/\.kube/config managing one cluster](#topology-example-2-running-in-a-server-with-kubeconfig-managing-one-cluster)
   * [Topology example 3: Running in a server with AWS credentials managing multiple clusters](#topology-example-3-running-in-a-server-with-aws-credentials-managing-multiple-clusters)
+* [Metrics](#metrics)
 * [Docker Hub](#docker-hub)
 * [Helm chart](#helm-chart)
   * [Using the helm repository](#using-the-helm-repository)
