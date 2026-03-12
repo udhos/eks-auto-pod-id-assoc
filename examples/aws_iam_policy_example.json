@@ -12,7 +12,8 @@
                 "eks:DeletePodIdentityAssociation",
                 "eks:TagResource",
                 "iam:PassRole",
-                "iam:GetRole"
+                "iam:GetRole",
+                "resourcegroupstaggingapi:GetResources"
             ],
             "Resource": "*"
         }

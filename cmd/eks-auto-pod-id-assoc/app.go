@@ -310,7 +310,8 @@ func (a *application) discoverOneCluster(c configCluster, clusterName string) (c
 	beginPIA := time.Now()
 
 	piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
-		c.Region, clusterName)
+		c.Region, clusterName, c.PodIdentityAssociationTags,
+		c.PurgeExternalStaleAssociations)
 
 	elapsedPIA := time.Since(beginPIA)
 

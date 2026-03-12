@@ -122,6 +122,7 @@ clusters:
     pod_identity_association_tags:
       managed-by: eks-auto-pod-id-assoc
     max_concurrency: 5
+    purge_external_stale_associations: false
 ```
 
 field | description
@@ -135,6 +136,7 @@ exclude_service_accounts | List of service accounts to exclude from synchronizat
 restrict_roles | Define a list of roles that are restricted. A restricted role can only be used by Service Accounts that are allowed under the field `allow`. The tool will ignore a Service Account attempting to use a restricted role without being allowed. The roles are processed in the order listed under `restrict_roles`. Only the first matching role regex is used.
 pod_identity_association_tags | Tags added to Associations. Default is `managed-by=eks-auto-pod-id-assoc`. **CAUTION** You can safely change this field before running the tool against a cluster. However once the tool has created associations with tagging in a cluster, you should **NOT** modify the tagging afterwards. If you do change the tagging, the associations created with previous tagging will linger in the cluster and the tool will be unable to delete or to update the old associations. If you did change the tagging in a cluster under synchronization, and now you need to restore the tool operation, you must manually delete all associations lingering with previous tagging.
 max_concurrency | Limit concurrency level for EKS API operations (create/delete) over multiple Associations. Default is 5.
+purge_external_stale_associations | false | **false**: Only manages associations created and tagged by this tool. **true**: Manages all associations in the cluster. **Warning**: If enabled, any association (including those created by Terraform/Console) that lacks a corresponding Kubernetes Service Account will be deleted. **NOTE**: This flags controls only external associations. The tool always cleans internal self-created associations as soon as they become stale (orphan from Service Account).
 
 # Regular expressions
 
@@ -224,7 +226,7 @@ Permission | Comment
 -- | --
 K8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["get","list","watch"] | Discovery of existing Service Accounts.
 `eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the K8s API server.
-`eks:ListPodIdentityAssociations` | Discovery of existing Associations.
+`eks:ListPodIdentityAssociations` and `resourcegroupstaggingapi:GetResources` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
 `iam:PassRole`, `iam:GetRole` and `eks:TagResource` | Permissions required to create Associations on AWS EKS.
 

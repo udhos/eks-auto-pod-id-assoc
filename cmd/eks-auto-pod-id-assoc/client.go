@@ -38,7 +38,8 @@ type clientInterface interface {
 		clusterName, annotationKey string) ([]serviceAccount, error)
 
 	listPodIdentityAssociations(self bool, roleArn, region,
-		clusterName string) ([]podIdentityAssociation, error)
+		clusterName string, tags map[string]string,
+		purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error)
 
 	clientPIA
 }
@@ -263,7 +264,8 @@ func (c *realClient) listServiceAccounts(self bool, roleArn, region,
 }
 
 func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
-	clusterName string) ([]podIdentityAssociation, error) {
+	clusterName string, tags map[string]string,
+	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
 
 	const me = "listPodIdentityAssociations"
 

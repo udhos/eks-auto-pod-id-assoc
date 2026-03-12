@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/segmentio/ksuid"
@@ -613,6 +614,9 @@ func newMockClient() *mockClient {
 							ServiceAccountName:      "sa1",
 						},
 					},
+					tags: map[string]map[string]string{
+						"example-assoc-id-1": defaultTags,
+					},
 				},
 			},
 			"us-east-1": {
@@ -628,6 +632,9 @@ func newMockClient() *mockClient {
 							ServiceAccountNamespace: "default",
 							ServiceAccountName:      "sa1",
 						},
+					},
+					tags: map[string]map[string]string{
+						"example-assoc-id-1": defaultTags,
 					},
 				},
 			},
@@ -652,6 +659,10 @@ func newMockClient() *mockClient {
 							ServiceAccountName:      "sa2",
 						},
 					},
+					tags: map[string]map[string]string{
+						"example-assoc-id-1": defaultTags,
+						"example-assoc-id-2": defaultTags,
+					},
 				},
 				{
 					clusterName: "another-cluster",
@@ -662,14 +673,102 @@ func newMockClient() *mockClient {
 	return client
 }
 
+// go test -count 1 -run '^TestPurgeExternalStaleAssociations$' ./...
+func TestPurgeExternalStaleAssociations(t *testing.T) {
+	// 1. Setup config with the new flag set to false (default behavior)
+	const conf = `
+clusters:
+  - region: us-east-1
+    cluster_name: ^example-cluster-2$
+    purge_external_stale_associations: false
+`
+	cfg, err := loadConfig([]byte(conf))
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	client := newMockClient()
+
+	// 2. Prepare the mock cluster with one tagged PIA and one untagged PIA
+	// and REMOVE all service accounts (making both PIAs stale)
+	{
+		cl, _ := client.findCluster("us-east-1", "example-cluster-2")
+
+		// Create a second PIA that is "External" (no tags)
+		externalAssocID := "external-assoc-999"
+		externalPIA := podIdentityAssociation{
+			AssociationID:           externalAssocID,
+			ClusterName:             "example-cluster-2",
+			ServiceAccountNamespace: "default",
+			ServiceAccountName:      "manual-sa",
+		}
+
+		cl.podIdentityAssociations = append(cl.podIdentityAssociations, externalPIA)
+		// Note: we do NOT add tags for externalAssocID in cl.tags
+
+		// Remove all Service Accounts so both PIAs are now "stale"
+		cl.serviceAccounts = nil
+	}
+
+	met := newMetrics("", defaultLatencyBucketsSeconds, 1.0, false)
+	app := newApplication(cfg, met, client)
+
+	// 3. Initial check: verify we have 2 PIAs in the mock state
+	{
+		cl, _ := client.findCluster("us-east-1", "example-cluster-2")
+		if len(cl.podIdentityAssociations) != 2 {
+			t.Fatalf("setup error: expected 2 PIAs, found %d", len(cl.podIdentityAssociations))
+		}
+	}
+
+	// 4. Run the reconciliation loop
+	app.run()
+
+	// 5. Final check:
+	// The tagged PIA should be deleted (internal stale).
+	// The untagged PIA should be UNTOUCHED (external stale, but flag is false).
+	{
+		cl, _ := client.findCluster("us-east-1", "example-cluster-2")
+
+		foundExternal := false
+		foundInternal := false
+
+		for _, pia := range cl.podIdentityAssociations {
+			if pia.AssociationID == "external-assoc-999" {
+				foundExternal = true
+			}
+			if pia.AssociationID == "example-assoc-id-1" {
+				foundInternal = true
+			}
+		}
+
+		if foundInternal {
+			t.Errorf("Internal stale association was NOT deleted")
+		}
+		if !foundExternal {
+			t.Errorf("External stale association WAS deleted, but flag was false (untouched expected)")
+		}
+
+		if len(cl.podIdentityAssociations) != 1 {
+			t.Errorf("Expected 1 remaining PIA, found %d", len(cl.podIdentityAssociations))
+		}
+	}
+}
+
 type mockClient struct {
 	regions map[string][]mockCluster // region -> clusters
+	mu      sync.Mutex
 }
 
 type mockCluster struct {
 	clusterName             string
 	serviceAccounts         []serviceAccount
 	podIdentityAssociations []podIdentityAssociation
+	tags                    map[string]map[string]string
+}
+
+func (c *mockCluster) getTags(assocID string) map[string]string {
+	return c.tags[assocID]
 }
 
 func (c *mockClient) getKubeClient(_ bool, _,
@@ -699,14 +798,56 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
+func hasTags(tags, required map[string]string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	for k, v := range required {
+		vv, found := tags[k]
+		if !found {
+			return false // required tag key not found
+		}
+		if vv != v {
+			return false // requied tag value not found
+		}
+	}
+	return true
+}
+
 func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
-	clusterName string) ([]podIdentityAssociation, error) {
+	clusterName string, tags map[string]string,
+	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if self {
 		region = "self"
 	}
+
 	for _, cluster := range c.regions[region] {
 		if cluster.clusterName == clusterName {
-			return cluster.podIdentityAssociations, nil
+			var list []podIdentityAssociation
+
+			for _, pia := range cluster.podIdentityAssociations {
+				if purgeExternalStaleAssociations {
+					list = append(list, pia)
+					continue
+				}
+
+				// Filter by tag
+				piaTags := cluster.getTags(pia.AssociationID)
+				errorf("cluster=%s pia=%v require=%v result=%t",
+					clusterName, pia, tags, hasTags(piaTags, tags))
+				if hasTags(piaTags, tags) {
+					list = append(list, pia)
+				}
+			}
+
+			// Return a COPY so the app doesn't race with our internal state
+			result := make([]podIdentityAssociation, len(list))
+			copy(result, list)
+			return result, nil
 		}
 	}
 	return nil, errors.New("cluster not found")
@@ -714,7 +855,10 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 
 func (c *mockClient) createPodIdentityAssociation(self bool, _, region,
 	clusterName, _, serviceAccountName,
-	_ string, _ map[string]string) error {
+	_ string, tags map[string]string) error {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if self {
 		region = "self"
@@ -742,6 +886,8 @@ func (c *mockClient) createPodIdentityAssociation(self bool, _, region,
 
 	cluster.podIdentityAssociations = append(cluster.podIdentityAssociations, newAssoc)
 
+	cluster.tags[associationID] = tags
+
 	return nil
 }
 
@@ -767,6 +913,9 @@ func (c *mockClient) findPodIdentityAssociationByServiceAccount(cluster *mockClu
 
 func (c *mockClient) deletePodIdentityAssociation(self bool, _, region,
 	clusterName, associationID string) error {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if self {
 		region = "self"
