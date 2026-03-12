@@ -94,7 +94,7 @@ metadata:
 
 # Configuration file
 
-The configuration file is an YAML document declaring a list of clusters.
+The configuration file is a YAML document declaring a list of clusters.
 
 Example:
 
@@ -298,7 +298,7 @@ clusters:
 
 # Metrics
 
-The metrics are avaiable both for Prometheus and for Datadog Dogstatsd.
+The metrics are available both for Prometheus and for Datadog Dogstatsd.
 
 If you want to enable the metrics for Datadog/Dogstatsd, configure these env vars:
 
