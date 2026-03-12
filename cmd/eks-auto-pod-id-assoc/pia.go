@@ -27,7 +27,7 @@ func createPodIdentityAssociations(ctx context.Context,
 
 	// ErrGroup with a limit is the modern 'Sempahore + WaitGroup'
 	// It also handles context cancellation automatically.
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(maxGoroutines)
 
 	for i, sa := range list {
@@ -74,7 +74,7 @@ func deletePodIdentityAssociations(ctx context.Context,
 	}
 
 	// ErrGroup manages the pool and the limit natively
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(maxGoroutines)
 
 	for i, pia := range list {
