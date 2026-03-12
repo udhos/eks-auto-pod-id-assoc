@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -263,15 +264,13 @@ func (c *realClient) listServiceAccounts(self bool, roleArn, region,
 	return result, nil
 }
 
-func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
-	clusterName string, tags map[string]string,
-	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
-
-	const me = "listPodIdentityAssociations"
+func (c *realClient) listAssociations(caller, roleArn, region,
+	clusterName string) ([]podIdentityAssociation, error) {
 
 	clientEks, errEks := c.getEKSClient(roleArn, region)
 	if errEks != nil {
-		return nil, fmt.Errorf("%s: could not get EKS client: %w", me, errEks)
+		return nil, fmt.Errorf("%s: could not get EKS client: %w",
+			caller, errEks)
 	}
 
 	var maxResults int32 = 100 // 1..100
@@ -287,7 +286,7 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("%s: failed to get page: %w", me, err)
+			return nil, fmt.Errorf("%s: failed to get page: %w", caller, err)
 		}
 		for _, assoc := range page.Associations {
 			pia := podIdentityAssociation{
@@ -301,9 +300,32 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	}
 
 	infof("%s: region=%q cluster=%q found pod identity associations: %d",
-		me, region, clusterName, len(piaList))
+		caller, region, clusterName, len(piaList))
 
 	return piaList, nil
+}
+
+func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
+	clusterName string, tags map[string]string,
+	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
+
+	const me = "listPodIdentityAssociations"
+
+	if purgeExternalStaleAssociations {
+		return c.listAssociations(me, roleArn, region, clusterName)
+	}
+
+	// stub:
+
+	// 1/3 - query GetResources all associations tags
+
+	// 2/3 - get full associations list with listAssociations
+
+	// 3/3 - pick only associations with our tags
+
+	var result []podIdentityAssociation
+
+	return result, errors.New("listPodIdentityAssociations FIXME WRITEME TODO")
 }
 
 var defaultTags = map[string]string{
