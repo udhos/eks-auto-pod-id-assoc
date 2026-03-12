@@ -756,6 +756,74 @@ clusters:
 	}
 }
 
+// go test -count 1 -run '^TestPurgeExternalStaleAssociationsEnabled$' ./...
+func TestPurgeExternalStaleAssociationsEnabled(t *testing.T) {
+	// 1. Setup config with the flag set to TRUE
+	const conf = `
+clusters:
+  - region: us-east-1
+    cluster_name: ^example-cluster-2$
+    purge_external_stale_associations: true
+`
+	cfg, err := loadConfig([]byte(conf))
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	client := newMockClient()
+
+	// 2. Prepare the mock cluster:
+	// - One tagged PIA (Internal)
+	// - One untagged PIA (External)
+	// - No Service Accounts (making BOTH stale)
+	{
+		cl, _ := client.findCluster("us-east-1", "example-cluster-2")
+
+		externalAssocID := "external-assoc-999"
+		externalPIA := podIdentityAssociation{
+			AssociationID:           externalAssocID,
+			ClusterName:             "example-cluster-2",
+			ServiceAccountNamespace: "default",
+			ServiceAccountName:      "manual-sa",
+		}
+
+		cl.podIdentityAssociations = append(cl.podIdentityAssociations, externalPIA)
+		// No tags added for externalAssocID
+
+		// Clear SAs so the controller sees these PIAs as points-to-nothing
+		cl.serviceAccounts = nil
+	}
+
+	met := newMetrics("", defaultLatencyBucketsSeconds, 1.0, false)
+	app := newApplication(cfg, met, client)
+
+	// 3. Initial check: 2 PIAs exist
+	{
+		cl, _ := client.findCluster("us-east-1", "example-cluster-2")
+		if len(cl.podIdentityAssociations) != 2 {
+			t.Fatalf("setup error: expected 2 PIAs, found %d", len(cl.podIdentityAssociations))
+		}
+	}
+
+	// 4. Run reconciliation
+	app.run()
+
+	// 5. Final check:
+	// BOTH the internal and external stale associations should be gone.
+	{
+		cl, _ := client.findCluster("us-east-1", "example-cluster-2")
+
+		if len(cl.podIdentityAssociations) != 0 {
+			t.Errorf("Expected 0 remaining PIAs because purge=true, but found %d",
+				len(cl.podIdentityAssociations))
+
+			for _, pia := range cl.podIdentityAssociations {
+				t.Errorf("Remaining PIA ID: %s", pia.AssociationID)
+			}
+		}
+	}
+}
+
 type mockClient struct {
 	regions map[string][]mockCluster // region -> clusters
 	mu      sync.Mutex
