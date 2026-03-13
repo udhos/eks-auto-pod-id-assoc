@@ -867,25 +867,10 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
-func hasTags(tags, required map[string]string) bool {
-	if len(required) == 0 {
-		return true
-	}
-	for k, v := range required {
-		vv, found := tags[k]
-		if !found {
-			return false // required tag key not found
-		}
-		if vv != v {
-			return false // requied tag value not found
-		}
-	}
-	return true
-}
-
 func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 	clusterName string, tags map[string]string,
-	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
+	purgeExternalStaleAssociations bool,
+	_ metrics) ([]podIdentityAssociation, error) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -918,6 +903,22 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 		}
 	}
 	return nil, errors.New("cluster not found")
+}
+
+func hasTags(tags, required map[string]string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	for k, v := range required {
+		vv, found := tags[k]
+		if !found {
+			return false // required tag key not found
+		}
+		if vv != v {
+			return false // requied tag value not found
+		}
+	}
+	return true
 }
 
 func (c *mockClient) createPodIdentityAssociation(self bool, _, region,

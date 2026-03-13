@@ -311,13 +311,9 @@ func (a *application) discoverOneCluster(c configCluster, clusterName string) (c
 
 	piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
 		c.Region, clusterName, c.PodIdentityAssociationTags,
-		c.PurgeExternalStaleAssociations)
+		c.PurgeExternalStaleAssociations, a.metrics)
 
 	elapsedPIA := time.Since(beginPIA)
-
-	a.metrics.recordAPILatency(clusterName,
-		apiEksListPodIdentityAssociations, getAPIStatus(err),
-		elapsedPIA)
 
 	if err != nil {
 		return cluster{}, fmt.Errorf("failed to list pod identity associations for cluster %s: elapsed=%v: %w",

@@ -323,7 +323,7 @@ Possible dimensions values:
 
 - ignore_reason: not_ignored, excluded, restricted_role
 - status: ok, error
-- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation
+- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation, resourcegroupstaggingapi:GetResources
 
 # Docker Hub
 

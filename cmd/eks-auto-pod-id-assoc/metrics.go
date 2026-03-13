@@ -116,6 +116,7 @@ const (
 	apiEksListPodIdentityAssociations  = "eks:ListPodIdentityAssociations"
 	apiEksCreatePodIdentityAssociation = "eks:CreatePodIdentityAssociation"
 	apiEksDeletePodIdentityAssociation = "eks:DeletePodIdentityAssociation"
+	apiResourceGroupsTaggingAPI        = "resourcegroupstaggingapi:GetResources"
 
 	apiStatusOk    = "ok"
 	apiStatusError = "error"

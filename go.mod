@@ -5,6 +5,7 @@ go 1.26.1
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.3
 	github.com/aws/aws-sdk-go-v2/service/eks v1.80.2
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.31.8
 	github.com/prometheus/client_golang v1.23.2
 	github.com/segmentio/ksuid v1.0.4
 	github.com/udhos/boilerplate v1.6.15

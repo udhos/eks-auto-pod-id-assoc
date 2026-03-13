@@ -46,6 +46,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.19 h1:JnQeStZvPHFHe
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.19/go.mod h1:HGyasyHvYdFQeJhvDHfH7HXkHh57htcJGKDZ+7z+I24=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.88.2 h1:j+IFEtr7aykD6jJRE86kv/+TgN1UK90LudBuz2bjjYw=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.88.2/go.mod h1:IDvS3hFp41ZJTByY7BO8PNgQkPNeQDjJfU/0cHJ2V4o=
+github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.31.8 h1:mGgiunl7ZwOwhpJwJNF4JfsZFYJp08wjyS3NqFQe3ws=
+github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.31.8/go.mod h1:KdM2EhXeHfeBQz5keOvv/FM7kbesjCWm7HEEyJe3frs=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4 h1:4ExZyubQ6LQQVuF2Qp9OsfEvsTdAWh5Gfwf6PgIdLdk=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4/go.mod h1:NF3JcMGOiARAss1ld3WGORCw71+4ExDD2cbbdKS5PpA=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.3 h1:9bb0dEq1WzA0ZxIGG2EmwEgxfMAJpHyusxwbVN7f6iM=
