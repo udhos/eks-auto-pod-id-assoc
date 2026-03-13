@@ -6,6 +6,7 @@ go install github.com/mgechev/revive@latest
 go install golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest
 go install github.com/gordonklaus/ineffassign@latest
 go install github.com/client9/misspell/cmd/misspell@latest
+go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
 gofmt -s -w .
 

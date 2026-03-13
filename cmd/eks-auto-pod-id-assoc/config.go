@@ -144,6 +144,12 @@ func loadConfig(data []byte) (config, error) {
 		}
 	}
 
+	cfg = defaultConfig(cfg)
+
+	return cfg, err
+}
+
+func defaultConfig(cfg config) config {
 	for c, cl := range cfg.Clusters {
 
 		// add default tags to cluster
@@ -152,8 +158,7 @@ func loadConfig(data []byte) (config, error) {
 			cfg.Clusters[c] = cl // write back
 		}
 	}
-
-	return cfg, err
+	return cfg
 }
 
 func compileRestrictRolesList(list []restrictRole) error {
