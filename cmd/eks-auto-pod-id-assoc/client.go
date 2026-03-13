@@ -362,7 +362,7 @@ func (c *realClient) listTaggedAssociationIDs(roleArn, clusterName,
 
 	defer func() {
 		m.recordAPILatency(clusterName,
-			apiResourceGroupsTaggingAPI, status,
+			apiTagGetResources, status,
 			time.Since(begin))
 	}()
 

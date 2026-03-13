@@ -208,7 +208,7 @@ restrict_roles | Define a list of roles that are restricted. A restricted role c
 pod_identity_association_tags | Tags added to Associations. Default is `managed-by=eks-auto-pod-id-assoc`. **CAUTION** You can safely change this field before running the tool against a cluster. However once the tool has created associations with tagging in a cluster, you should **NOT** modify the tagging afterwards. If you do change the tagging, the associations created with previous tagging will linger in the cluster and the tool will be unable to delete or to update the old associations. If you did change the tagging in a cluster under synchronization, and now you need to restore the tool operation, you must manually delete all associations lingering with previous tagging.
 max_concurrency | Limit concurrency level for EKS API operations (create/delete) over multiple Associations. Default is 5.
 purge_external_stale_associations | Default is `false`. **false**: Only manages associations created and tagged by this tool. **true**: Manages all associations in the cluster. **Warning**: If enabled, any association (including those created by Terraform/Console) that lacks a corresponding Kubernetes Service Account will be deleted. **NOTE**: This flags controls only external associations. The tool always cleans internal self-created associations as soon as they become stale (orphan from Service Account).
-force_iterative_association_discovery | Default is `false`. **false**: Faster option. Performs a bulk lookup of all tagged associations in a single request using `resourcegroupstaggingapi:GetResources`. **true**: Slower option. It will call `eks:DescribePodIdentityAssociation` for every association. If the EKS cluster has 500 associations, it means 500 additional API calls. This is slower and recommended only in environments that block usage of `resourcegroupstaggingapi:GetResources`.
+force_iterative_association_discovery | Default is `false`. **false**: Faster option. Performs a bulk lookup of all tagged associations in a single request using `tag:GetResources`. **true**: Slower option. It will call `eks:DescribePodIdentityAssociation` for every association. If the EKS cluster has 500 associations, it means 500 additional API calls. This is slower and recommended only in environments that block usage of `tag:GetResources`.
 
 # Regular expressions
 
@@ -298,7 +298,7 @@ Permission | Comment
 -- | --
 K8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["get","list","watch"] | Discovery of existing Service Accounts.
 `eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the K8s API server.
-`eks:ListPodIdentityAssociations`, `eks:DescribePodIdentityAssociation` `resourcegroupstaggingapi:GetResources` | Discovery of existing Associations.
+`eks:ListPodIdentityAssociations`, `eks:DescribePodIdentityAssociation` `tag:GetResources` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
 `iam:PassRole`, `iam:GetRole` and `eks:TagResource` | Permissions required to create Associations on AWS EKS.
 
@@ -395,7 +395,7 @@ Possible dimensions values:
 
 - ignore_reason: not_ignored, excluded, restricted_role
 - status: ok, error
-- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:DescribePodIdentityAssociation, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation, resourcegroupstaggingapi:GetResources
+- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:DescribePodIdentityAssociation, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation, tag:GetResources
 
 # Docker Hub
 

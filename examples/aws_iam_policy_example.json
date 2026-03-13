@@ -14,7 +14,7 @@
                 "eks:TagResource",
                 "iam:PassRole",
                 "iam:GetRole",
-                "resourcegroupstaggingapi:GetResources"
+                "tag:GetResources"
             ],
             "Resource": "*"
         }
