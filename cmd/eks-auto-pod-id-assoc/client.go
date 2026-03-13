@@ -333,16 +333,16 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 
 	// 1/3 - query GetResources for all associations with our tags
 	// This returns ARNs of resources that match the "managed-by" tags.
-	taggedARNs, errTags := c.getTaggedResourceARNs(roleArn, clusterName,
+	taggedAssocIDs, errTags := c.listTaggedAssociationIDs(roleArn, clusterName,
 		region, tags, m)
 	if errTags != nil {
 		return nil, fmt.Errorf("%s: failed to get tagged resources: %w", me, errTags)
 	}
 
-	debugf("%s: found tagged associations: %d", me, len(taggedARNs))
+	debugf("%s: found tagged associations: %d", me, len(taggedAssocIDs))
 
-	for k := range taggedARNs {
-		debugf("%s: found tagged association: %s", me, k)
+	for _, id := range taggedAssocIDs {
+		debugf("%s: found tagged association: %s", me, id)
 	}
 
 	// 2/3 - get full associations list with listAssociations
@@ -355,11 +355,10 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	// 3/3 - pick only associations that appeared in our tagged list
 	var result []podIdentityAssociation
 	for _, assoc := range allAssocs {
-		// Construct the ARN for this association to match against GetResources output
-		// Format: arn:aws:eks:<region>:<account>:podidentityassociation/<cluster>/<uuid>
-		// Note: Constructing the ARN manually is faster than describing each one.
-		if _, found := taggedARNs[assoc.AssociationID]; found {
-			result = append(result, assoc)
+		for _, tagged := range taggedAssocIDs {
+			if assoc.AssociationID == tagged {
+				result = append(result, assoc)
+			}
 		}
 	}
 
@@ -369,9 +368,9 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	return result, nil
 }
 
-func (c *realClient) getTaggedResourceARNs(roleArn, clusterName,
+func (c *realClient) listTaggedAssociationIDs(roleArn, clusterName,
 	region string, tags map[string]string,
-	m metrics) (map[string]bool, error) {
+	m metrics) ([]string, error) {
 
 	begin := time.Now()
 	var status string
@@ -404,7 +403,8 @@ func (c *realClient) getTaggedResourceARNs(roleArn, clusterName,
 		})
 	}
 
-	taggedIDs := make(map[string]bool)
+	var taggedIDs []string
+
 	paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(tagClient,
 		&resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: []string{"eks:podidentityassociation"},
@@ -423,7 +423,7 @@ func (c *realClient) getTaggedResourceARNs(roleArn, clusterName,
 			parts := strings.Split(arn, "/")
 			if len(parts) > 0 {
 				id := parts[len(parts)-1]
-				taggedIDs[id] = true
+				taggedIDs = append(taggedIDs, id)
 			}
 		}
 	}

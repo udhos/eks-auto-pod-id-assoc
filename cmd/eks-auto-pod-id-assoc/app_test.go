@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// go test -count 1 -run '^TestDiscoveryRegion$' ./...
 func TestDiscoveryRegion(t *testing.T) {
 
 	const conf = `
@@ -867,7 +869,7 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
+func (c *mockClient) listPodIdentityAssociations(self bool, roleArn, region,
 	clusterName string, tags map[string]string,
 	purgeExternalStaleAssociations bool,
 	_ metrics) ([]podIdentityAssociation, error) {
@@ -879,7 +881,11 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 		region = "self"
 	}
 
-	for _, cluster := range c.regions[region] {
+	clusterLabel := getClusterLabel(roleArn, region, clusterName)
+
+	clusters := c.regions[region]
+
+	for _, cluster := range clusters {
 		if cluster.clusterName == clusterName {
 			var list []podIdentityAssociation
 
@@ -902,7 +908,9 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 			return result, nil
 		}
 	}
-	return nil, errors.New("cluster not found")
+
+	return nil, fmt.Errorf("mockClient.listPodIdentityAssociations: cluster (%s) not found: clusters: %v",
+		clusterLabel, clusters)
 }
 
 func hasTags(tags, required map[string]string) bool {

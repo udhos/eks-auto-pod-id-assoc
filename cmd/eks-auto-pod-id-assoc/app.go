@@ -285,39 +285,57 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 	return clusterNames, nil
 }
 
+func (a *application) listAssociations(self bool, roleArn, region,
+	clusterName string, tags map[string]string,
+	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
+
+	piaList, err := a.client.listPodIdentityAssociations(self, roleArn,
+		region, clusterName, tags, purgeExternalStaleAssociations, a.metrics)
+
+	return piaList, err
+}
+
 func (a *application) discoverOneCluster(c configCluster, clusterName string) (cluster, error) {
 	beginSA := time.Now()
 
-	saList, err := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
+	//
+	// service accounts
+	//
+
+	saList, errSA := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
 		clusterName, c.Annotation)
 
 	elapsedSA := time.Since(beginSA)
 
 	a.metrics.recordAPILatency(clusterName,
-		apiServiceAccountsList, getAPIStatus(err),
+		apiServiceAccountsList, getAPIStatus(errSA),
 		elapsedSA)
 
-	if err != nil {
+	if errSA != nil {
 		return cluster{}, fmt.Errorf("failed to list service accounts for cluster %s: elapsed=%v: %w",
-			clusterName, elapsedSA, err)
+			clusterName, elapsedSA, errSA)
 	}
 
 	saTotal := len(saList)
+
+	//
+	// pod identity associations
+	//
 
 	infof("listServiceAccounts: cluster=%q elapsed=%v found=%d",
 		clusterName, elapsedSA, saTotal)
 
 	beginPIA := time.Now()
 
-	piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
-		c.Region, clusterName, c.PodIdentityAssociationTags,
-		c.PurgeExternalStaleAssociations, a.metrics)
+	piaList, errPIA := a.listAssociations(c.Self, c.RoleArn, c.Region,
+		clusterName, c.PodIdentityAssociationTags,
+		c.PurgeExternalStaleAssociations)
 
 	elapsedPIA := time.Since(beginPIA)
 
-	if err != nil {
+	if errPIA != nil {
 		return cluster{}, fmt.Errorf("failed to list pod identity associations for cluster %s: elapsed=%v: %w",
-			clusterName, elapsedPIA, err)
+			clusterName, elapsedPIA, errPIA)
 	}
 
 	piaTotal := len(piaList)
