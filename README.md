@@ -10,6 +10,11 @@
 
 * [Why](#why)
 * [Building and running](#building-and-running)
+* [Quick Start](#quick-start)
+  * [Prerequisites](#prerequisites)
+  * [Installation](#installation)
+  * [Configuration](#configuration)
+  * [Run](#run)
 * [How it works](#how-it-works)
 * [Configuration file](#configuration-file)
 * [Regular expressions](#regular-expressions)
@@ -67,6 +72,58 @@ Running Docker image:
 ```bash
 docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 ```
+
+# Quick Start
+
+## Prerequisites
+
+- An EKS cluster with Pod Identity enabled
+- AWS credentials with permissions to manage Pod Identity Associations (see [Permissions](#permissions))
+
+## Installation
+
+Install via Go:
+
+```bash
+go install github.com/udhos/eks-auto-pod-id-assoc/cmd/eks-auto-pod-id-assoc@latest
+```
+
+Or use Docker:
+
+```bash
+docker pull udhos/eks-auto-pod-id-assoc:latest
+```
+
+## Configuration
+
+Create a `config.yaml` file with your cluster details:
+
+```yaml
+clusters:
+  - region: us-east-1
+    cluster_name: my-cluster
+    self: true
+```
+
+Replace `us-east-1` with your AWS region and `my-cluster` with your EKS cluster name.
+
+## Run
+
+With Go install:
+
+```bash
+eks-auto-pod-id-assoc
+```
+
+With Docker:
+
+```bash
+docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
+```
+
+The tool will start monitoring Service Accounts and, if `DRY_RUN=false`, automatically create/delete Pod Identity Associations based on the `eks.amazonaws.com/role-arn` annotation.
+
+For production deployments, consider using the [Helm chart](#helm-chart) or see [Topologies](#topologies) for advanced configurations.
 
 # How it works
 
