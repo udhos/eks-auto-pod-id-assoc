@@ -37,9 +37,8 @@ func createPodIdentityAssociations(ctx context.Context,
 				tags)
 
 			elap := time.Since(begin)
-			m.recordAPILatency(clusterName,
-				apiEksCreatePodIdentityAssociation, getAPIStatus(err),
-				elap)
+			m.recordAPILatency(clusterName, apiEksCreatePodIdentityAssociation,
+				getAPIStatus(err), elap)
 
 			if err != nil {
 				errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v: %v",
@@ -79,9 +78,8 @@ func deletePodIdentityAssociations(ctx context.Context,
 				region, clusterName, pia.AssociationID)
 
 			elap := time.Since(begin)
-			m.recordAPILatency(clusterName,
-				apiEksDeletePodIdentityAssociation, getAPIStatus(err),
-				elap)
+			m.recordAPILatency(clusterName, apiEksDeletePodIdentityAssociation,
+				getAPIStatus(err), elap)
 
 			if err != nil {
 				errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v: %v",
@@ -112,8 +110,15 @@ func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
 
 		clusterLabel := getClusterLabel(roleArn, region, clusterName)
 
+		begin := time.Now()
+
 		assocTags, err := client.getPodIdentityAssociationTags(self, roleArn,
 			region, clusterName, pia.AssociationID)
+
+		elap := time.Since(begin)
+		m.recordAPILatency(clusterName, apiEksDescribePodIdentityAssociation,
+			getAPIStatus(err), elap)
+
 		if err != nil {
 			return nil, fmt.Errorf("error describing association: %s: associationID=%s: error: %w",
 				clusterLabel, pia.AssociationID, err)

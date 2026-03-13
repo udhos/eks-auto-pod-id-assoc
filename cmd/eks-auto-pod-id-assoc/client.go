@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -327,10 +326,32 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	return piaList, nil
 }
 
-func (c *realClient) getPodIdentityAssociationTags(self bool, roleArn, region,
+func (c *realClient) getPodIdentityAssociationTags(_ bool, roleArn, region,
 	clusterName, associationID string) (map[string]string, error) {
 
-	return nil, errors.New("realClient.getPodIdentityAssociationTags FIXME WRITEME TODO XXX")
+	const me = "getPodIdentityAssociationTags"
+
+	clusterLabel := getClusterLabel(roleArn, region, clusterName)
+
+	clientEks, errEks := c.getEKSClient(roleArn, region)
+	if errEks != nil {
+		return nil, fmt.Errorf("%s: could not get EKS client: %w",
+			me, errEks)
+	}
+
+	input := &eks.DescribePodIdentityAssociationInput{
+		ClusterName:   aws.String(clusterName),
+		AssociationId: aws.String(associationID),
+	}
+
+	resp, errDesc := clientEks.DescribePodIdentityAssociation(context.TODO(), input)
+	if errDesc != nil {
+		return nil, fmt.Errorf("%s: could not describe association %s associationID=%s: %w",
+			me, associationID, clusterLabel, errDesc)
+
+	}
+
+	return resp.Association.Tags, nil
 }
 
 func (c *realClient) listTaggedAssociationIDs(roleArn, clusterName,
