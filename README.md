@@ -15,6 +15,7 @@
   * [Installation](#installation)
   * [Configuration](#configuration)
   * [Run](#run)
+  * [Verify](#verify)
 * [How it works](#how-it-works)
 * [Configuration file](#configuration-file)
 * [Regular expressions](#regular-expressions)
