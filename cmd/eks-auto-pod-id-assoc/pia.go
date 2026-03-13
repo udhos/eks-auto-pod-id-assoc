@@ -146,7 +146,9 @@ func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
 		})
 	}
 
-	_ = g.Wait()
+	if errResult := g.Wait(); errResult != nil {
+		return nil, errResult
+	}
 
 	return result, nil
 }
