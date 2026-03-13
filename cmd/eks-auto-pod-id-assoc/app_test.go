@@ -869,12 +869,26 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
+func (c *mockClient) listTaggedPodIdentityAssociationsWithDescribe(_, clusterName,
 	region string, tags map[string]string,
-	fullAssociationIDList []podIdentityAssociation,
-	m metrics) ([]podIdentityAssociation, error) {
+	fullAssociationList []podIdentityAssociation,
+	_ metrics) ([]podIdentityAssociation, error) {
 
-	return nil, errors.New("mockClient.listTaggedPodIdentityAssociationsWithDescribe FIXME WRITEME TODO XXX")
+	cluster, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []podIdentityAssociation
+
+	for _, assoc := range fullAssociationList {
+		assocTags := cluster.getTags(assoc.AssociationID)
+		if hasTags(assocTags, tags) {
+			result = append(result, assoc)
+		}
+	}
+
+	return result, nil
 }
 
 func (c *mockClient) listTaggedAssociationIDs(_, clusterName,

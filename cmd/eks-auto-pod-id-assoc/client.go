@@ -50,7 +50,7 @@ type clientInterface interface {
 
 	listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
 		region string, tags map[string]string,
-		fullAssociationIDList []podIdentityAssociation,
+		fullAssociationList []podIdentityAssociation,
 		m metrics) ([]podIdentityAssociation, error)
 
 	clientPIA
@@ -331,7 +331,7 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 
 func (c *realClient) listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
 	region string, tags map[string]string,
-	fullAssociationIDList []podIdentityAssociation,
+	fullAssociationList []podIdentityAssociation,
 	m metrics) ([]podIdentityAssociation, error) {
 
 	return nil, errors.New("realClient.listTaggedPodIdentityAssociationsWithDescribe FIXME WRITEME TODO XXX")
