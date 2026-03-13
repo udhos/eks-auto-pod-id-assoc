@@ -112,13 +112,19 @@ Replace `us-east-1` with your AWS region and `my-cluster` with your EKS cluster 
 With Go install:
 
 ```bash
+export DRY=false ;# apply changes
+
 eks-auto-pod-id-assoc
 ```
 
 With Docker:
 
 ```bash
+# dry:
 docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
+
+# apply changes:
+docker run --rm -e DRY=false -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 ```
 
 The tool will start monitoring Service Accounts and, if `DRY=false` (it defaults to `true`), automatically create/delete Pod Identity Associations based on the `eks.amazonaws.com/role-arn` annotation.
