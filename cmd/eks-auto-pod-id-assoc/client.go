@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -46,6 +47,11 @@ type clientInterface interface {
 	listTaggedAssociationIDs(roleArn, clusterName,
 		region string, tags map[string]string,
 		m metrics) ([]string, error)
+
+	listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
+		region string, tags map[string]string,
+		fullAssociationIDList []podIdentityAssociation,
+		m metrics) ([]podIdentityAssociation, error)
 
 	clientPIA
 }
@@ -321,6 +327,14 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 		me, region, clusterName, len(piaList))
 
 	return piaList, nil
+}
+
+func (c *realClient) listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
+	region string, tags map[string]string,
+	fullAssociationIDList []podIdentityAssociation,
+	m metrics) ([]podIdentityAssociation, error) {
+
+	return nil, errors.New("realClient.listTaggedPodIdentityAssociationsWithDescribe FIXME WRITEME TODO XXX")
 }
 
 func (c *realClient) listTaggedAssociationIDs(roleArn, clusterName,

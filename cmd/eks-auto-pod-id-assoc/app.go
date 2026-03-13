@@ -287,18 +287,29 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 
 func (a *application) listAssociations(self bool, roleArn, region,
 	clusterName string, tags map[string]string,
-	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
+	purgeExternalStaleAssociations,
+	forceIterativeAssociationDiscovery bool) ([]podIdentityAssociation, error) {
 
 	const me = "application.listAssociations"
 
-	// If purge is enabled, we don't care about tags; return everything.
-	if purgeExternalStaleAssociations {
-		return a.client.listPodIdentityAssociations(self, roleArn,
-			region, clusterName, a.metrics)
+	// get full associations list with listAssociations
+	allAssocs, errList := a.client.listPodIdentityAssociations(self, roleArn,
+		region, clusterName, a.metrics)
+	if errList != nil {
+		return nil, errList
 	}
 
-	// 1/3 - query GetResources for all associations with our tags
-	// This returns ARNs of resources that match the "managed-by" tags.
+	// If purge is enabled, we don't care about tags; return everything.
+	if purgeExternalStaleAssociations {
+		return allAssocs, nil
+	}
+
+	if forceIterativeAssociationDiscovery {
+		return a.client.listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
+			region, tags, allAssocs, a.metrics)
+	}
+
+	// query GetResources for all associations with our tags
 	taggedAssocIDs, errTags := a.client.listTaggedAssociationIDs(roleArn, clusterName,
 		region, tags, a.metrics)
 	if errTags != nil {
@@ -311,14 +322,7 @@ func (a *application) listAssociations(self bool, roleArn, region,
 		debugf("%s: found tagged association: %s", me, id)
 	}
 
-	// 2/3 - get full associations list with listAssociations
-	allAssocs, errList := a.client.listPodIdentityAssociations(self, roleArn,
-		region, clusterName, a.metrics)
-	if errList != nil {
-		return nil, errList
-	}
-
-	// 3/3 - pick only associations that appeared in our tagged list
+	// pick only associations that appeared in our tagged list
 	var result []podIdentityAssociation
 	for _, assoc := range allAssocs {
 		for _, tagged := range taggedAssocIDs {
@@ -368,7 +372,7 @@ func (a *application) discoverOneCluster(c configCluster, clusterName string) (c
 
 	piaList, errPIA := a.listAssociations(c.Self, c.RoleArn, c.Region,
 		clusterName, c.PodIdentityAssociationTags,
-		c.PurgeExternalStaleAssociations)
+		c.PurgeExternalStaleAssociations, c.ForceIterativeAssociationDiscovery)
 
 	elapsedPIA := time.Since(beginPIA)
 
