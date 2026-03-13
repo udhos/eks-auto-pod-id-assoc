@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -104,30 +105,44 @@ func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
 	tags map[string]string,
 	maxGoroutines int) ([]podIdentityAssociation, error) {
 
+	clusterLabel := getClusterLabel(roleArn, region, clusterName)
+
 	var result []podIdentityAssociation
+	var mu sync.Mutex
+
+	// ErrGroup manages the pool and the limit natively
+	g, _ := errgroup.WithContext(ctx)
+	g.SetLimit(maxGoroutines)
 
 	for _, pia := range fullAssociationList {
 
-		clusterLabel := getClusterLabel(roleArn, region, clusterName)
+		g.Go(func() error {
 
-		begin := time.Now()
+			begin := time.Now()
 
-		assocTags, err := client.getPodIdentityAssociationTags(self, roleArn,
-			region, clusterName, pia.AssociationID)
+			assocTags, err := client.getPodIdentityAssociationTags(self, roleArn,
+				region, clusterName, pia.AssociationID)
 
-		elap := time.Since(begin)
-		m.recordAPILatency(clusterName, apiEksDescribePodIdentityAssociation,
-			getAPIStatus(err), elap)
+			elap := time.Since(begin)
+			m.recordAPILatency(clusterName, apiEksDescribePodIdentityAssociation,
+				getAPIStatus(err), elap)
 
-		if err != nil {
-			return nil, fmt.Errorf("error describing association: %s: associationID=%s: error: %w",
-				clusterLabel, pia.AssociationID, err)
-		}
+			if err != nil {
+				return fmt.Errorf("error describing association: %s: associationID=%s: error: %w",
+					clusterLabel, pia.AssociationID, err)
+			}
 
-		if hasTags(assocTags, tags) {
-			result = append(result, pia)
-		}
+			if hasTags(assocTags, tags) {
+				mu.Lock()
+				result = append(result, pia)
+				mu.Unlock()
+			}
+
+			return nil
+		})
 	}
+
+	_ = g.Wait()
 
 	return result, nil
 }
