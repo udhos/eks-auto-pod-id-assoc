@@ -339,7 +339,7 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 		return nil, fmt.Errorf("%s: failed to get tagged resources: %w", me, errTags)
 	}
 
-	debugf("%s: found tagged associatons: %d", me, len(taggedARNs))
+	debugf("%s: found tagged associations: %d", me, len(taggedARNs))
 
 	for k := range taggedARNs {
 		debugf("%s: found tagged association: %s", me, k)
