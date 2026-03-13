@@ -347,8 +347,7 @@ func (c *realClient) getPodIdentityAssociationTags(_ bool, roleArn, region,
 	resp, errDesc := clientEks.DescribePodIdentityAssociation(context.TODO(), input)
 	if errDesc != nil {
 		return nil, fmt.Errorf("%s: could not describe association %s associationID=%s: %w",
-			me, associationID, clusterLabel, errDesc)
-
+			me, clusterLabel, associationID, errDesc)
 	}
 
 	return resp.Association.Tags, nil
