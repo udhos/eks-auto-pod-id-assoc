@@ -114,9 +114,10 @@ func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(maxGoroutines)
 
-	for _, pia := range fullAssociationList {
+	for i, pia := range fullAssociationList {
 
 		g.Go(func() error {
+			label := fmt.Sprintf("%d/%d", i+1, len(fullAssociationList))
 
 			begin := time.Now()
 
@@ -131,6 +132,9 @@ func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
 				return fmt.Errorf("error describing association: %s: associationID=%s: error: %w",
 					clusterLabel, pia.AssociationID, err)
 			}
+
+			debugf("%s getPodIdentityAssociationTags %s: associationID=%q serviceAccount=%q elapsed=%v",
+				clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap)
 
 			if hasTags(assocTags, tags) {
 				mu.Lock()
