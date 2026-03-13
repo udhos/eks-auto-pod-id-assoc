@@ -199,6 +199,111 @@ clusters:
 
 }
 
+// go test -count 1 -run '^TestAddServiceAccountWithDescribe$' ./...
+func TestAddServiceAccountWithDescribe(t *testing.T) {
+
+	const conf = `
+clusters:
+  - region: us-east-1
+    cluster_name: ^example-cluster-2$
+    force_iterative_association_discovery: true
+`
+
+	cfg, err := loadConfig([]byte(conf))
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	client := newMockClient()
+
+	const namespace = ""
+	const sampleRate = 1.0
+	const dogstatsEnable = false
+
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds, sampleRate,
+		dogstatsEnable)
+
+	app := newApplication(cfg, met, client)
+
+	{
+		clusterList := app.discoverClusters()
+		foundClusters := len(clusterList)
+		if foundClusters != 1 {
+			t.Fatalf("found %d clusters, expected 1", foundClusters)
+		}
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 1 {
+			t.Fatalf("found %d service accounts, expected 1", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	app.run()
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 1 {
+			t.Fatalf("after run 1: found %d service accounts, expected 1", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("after run 1: found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	// add SA
+	{
+		cl := client.regions["us-east-1"][0]
+		sa := serviceAccount{
+			Name:       "newSa",
+			Namespace:  "default",
+			AwsRoleArn: "newAwsRoleARN",
+		}
+		cl.serviceAccounts = append(cl.serviceAccounts, sa)
+		client.regions["us-east-1"][0] = cl
+	}
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 2 {
+			t.Fatalf("after SA: found %d service accounts, expected 2", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("after SA: found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	client.savedDescribeList = nil
+
+	app.run()
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 2 {
+			t.Fatalf("after run 2: found %d service accounts, expected 2", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 2 {
+			t.Fatalf("after run 2: found %d PIAs, expected 2", countPIAs)
+		}
+	}
+
+	if len(client.savedDescribeList) != 2 {
+		t.Fatalf("expected 2 PIAs from describe, found %d   ", len(client.savedDescribeList))
+	}
+}
+
 func TestRemoveServiceAccount(t *testing.T) {
 
 	const conf = `
@@ -829,6 +934,8 @@ clusters:
 type mockClient struct {
 	regions map[string][]mockCluster // region -> clusters
 	mu      sync.Mutex
+
+	savedDescribeList []podIdentityAssociation
 }
 
 type mockCluster struct {
@@ -887,6 +994,8 @@ func (c *mockClient) listTaggedPodIdentityAssociationsWithDescribe(_, clusterNam
 			result = append(result, assoc)
 		}
 	}
+
+	c.savedDescribeList = result
 
 	return result, nil
 }
