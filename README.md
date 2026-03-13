@@ -131,6 +131,12 @@ The tool will start monitoring Service Accounts and, if `DRY=false` (it defaults
 
 For production deployments, consider using the [Helm chart](#helm-chart) or see [Topologies](#topologies) for advanced configurations.
 
+## Verify
+
+```bash
+aws eks list-pod-identity-associations --cluster-name my-cluster
+```
+
 # How it works
 
 `eks-auto-pod-id-assoc` automatically synchronizes [EKS Pod Identity Associations](https://docs.aws.amazon.com/eks/latest/eksctl/pod-identity-associations.html) from K8s Service Accounts:
