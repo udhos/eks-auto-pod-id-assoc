@@ -85,7 +85,7 @@ func (a *application) updateInformers(clusterList []cluster) {
 		options := serviceaccountinformer.Options{
 			Client: clientset,
 			OnUpdate: func(serviceAccounts []serviceaccountinformer.ServiceAccount) {
-				infof("OnUpdate: service accounts: %d", len(serviceAccounts))
+				debugf("OnUpdate: service accounts: %d", len(serviceAccounts))
 
 				// trigger cycle
 				select {
