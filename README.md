@@ -193,6 +193,7 @@ clusters:
       managed-by: eks-auto-pod-id-assoc
     max_concurrency: 5
     purge_external_stale_associations: false
+    force_iterative_association_discovery: false
 ```
 
 field | description
