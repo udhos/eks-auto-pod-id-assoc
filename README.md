@@ -297,7 +297,7 @@ Permission | Comment
 -- | --
 K8s RBAC: apiGroups:[""] resources:["serviceaccounts"] verbs:["get","list","watch"] | Discovery of existing Service Accounts.
 `eks:ListClusters` and `eks:DescribeCluster` | When `self=false` (default), the tool uses these API calls to generate Kubernetes credentials for the K8s API server.
-`eks:ListPodIdentityAssociations` and `resourcegroupstaggingapi:GetResources` | Discovery of existing Associations.
+`eks:ListPodIdentityAssociations`, `eks:DescribePodIdentityAssociation` `resourcegroupstaggingapi:GetResources` | Discovery of existing Associations.
 `eks:CreatePodIdentityAssociation` and `eks:DeletePodIdentityAssociation` | Calls needed to create/destroy Associations on AWS EKS.
 `iam:PassRole`, `iam:GetRole` and `eks:TagResource` | Permissions required to create Associations on AWS EKS.
 
@@ -394,7 +394,7 @@ Possible dimensions values:
 
 - ignore_reason: not_ignored, excluded, restricted_role
 - status: ok, error
-- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation, resourcegroupstaggingapi:GetResources
+- api: serviceaccounts.list, eks:ListClusters, eks:DescribeCluster, eks:ListPodIdentityAssociations, eks:DescribePodIdentityAssociation, eks:CreatePodIdentityAssociation, eks:DeletePodIdentityAssociation, resourcegroupstaggingapi:GetResources
 
 # Docker Hub
 

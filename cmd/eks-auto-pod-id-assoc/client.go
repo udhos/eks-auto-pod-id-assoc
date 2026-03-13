@@ -334,6 +334,15 @@ func (c *realClient) listTaggedPodIdentityAssociationsWithDescribe(roleArn, clus
 	fullAssociationList []podIdentityAssociation,
 	m metrics) ([]podIdentityAssociation, error) {
 
+	begin := time.Now()
+	var status string
+
+	defer func() {
+		m.recordAPILatency(clusterName,
+			apiEksDescribePodIdentityAssociation, status,
+			time.Since(begin))
+	}()
+
 	return nil, errors.New("realClient.listTaggedPodIdentityAssociationsWithDescribe FIXME WRITEME TODO XXX")
 }
 
