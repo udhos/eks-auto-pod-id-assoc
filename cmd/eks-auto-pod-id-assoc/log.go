@@ -52,3 +52,7 @@ func infof(format string, args ...any) {
 func errorf(format string, args ...any) {
 	slog.Error(fmt.Sprintf(format, args...))
 }
+
+func debugf(format string, args ...any) {
+	slog.Debug(fmt.Sprintf(format, args...))
+}
