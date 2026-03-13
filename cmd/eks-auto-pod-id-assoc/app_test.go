@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"maps"
 	"slices"
 	"sync"
 	"testing"
@@ -282,9 +283,9 @@ clusters:
 		}
 	}
 
-	client.savedDescribeList = nil
-
 	app.run()
+
+	client.countDescribes = 0
 
 	{
 		clusterList := app.discoverClusters() // reload
@@ -299,8 +300,8 @@ clusters:
 		}
 	}
 
-	if len(client.savedDescribeList) != 2 {
-		t.Fatalf("expected 2 PIAs from describe, found %d   ", len(client.savedDescribeList))
+	if client.countDescribes != 2 {
+		t.Fatalf("expected 2 describes, found %d", client.countDescribes)
 	}
 }
 
@@ -932,10 +933,9 @@ clusters:
 }
 
 type mockClient struct {
-	regions map[string][]mockCluster // region -> clusters
-	mu      sync.Mutex
-
-	savedDescribeList []podIdentityAssociation
+	regions        map[string][]mockCluster // region -> clusters
+	mu             sync.Mutex
+	countDescribes int
 }
 
 type mockCluster struct {
@@ -976,30 +976,6 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listTaggedPodIdentityAssociationsWithDescribe(_, clusterName,
-	region string, tags map[string]string,
-	fullAssociationList []podIdentityAssociation,
-	_ metrics) ([]podIdentityAssociation, error) {
-
-	cluster, err := c.findCluster(region, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []podIdentityAssociation
-
-	for _, assoc := range fullAssociationList {
-		assocTags := cluster.getTags(assoc.AssociationID)
-		if hasTags(assocTags, tags) {
-			result = append(result, assoc)
-		}
-	}
-
-	c.savedDescribeList = result
-
-	return result, nil
-}
-
 func (c *mockClient) listTaggedAssociationIDs(_, clusterName,
 	region string, tags map[string]string,
 	_ metrics) ([]string, error) {
@@ -1020,6 +996,31 @@ func (c *mockClient) listTaggedAssociationIDs(_, clusterName,
 	return list, nil
 }
 
+func (c *mockClient) getPodIdentityAssociationTags(self bool, roleArn, region,
+	clusterName, associationID string) (map[string]string, error) {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if self {
+		region = "self"
+	}
+
+	c.countDescribes++
+
+	label := getClusterLabel(roleArn, region, clusterName)
+
+	infof("getPodIdentityAssociationTags: %s: assocID=%s describes=%d",
+		label, associationID, c.countDescribes)
+
+	cl, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	return maps.Clone(cl.getTags(associationID)), nil
+}
+
 func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 	clusterName string, _ metrics) ([]podIdentityAssociation, error) {
 
@@ -1036,22 +1037,6 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 	}
 
 	return slices.Clone(cl.podIdentityAssociations), nil
-}
-
-func hasTags(tags, required map[string]string) bool {
-	if len(required) == 0 {
-		return true
-	}
-	for k, v := range required {
-		vv, found := tags[k]
-		if !found {
-			return false // required tag key not found
-		}
-		if vv != v {
-			return false // requied tag value not found
-		}
-	}
-	return true
 }
 
 func (c *mockClient) createPodIdentityAssociation(self bool, _, region,

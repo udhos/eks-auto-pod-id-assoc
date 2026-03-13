@@ -25,6 +25,9 @@ type clientPIA interface {
 
 	deletePodIdentityAssociation(self bool, roleArn, region,
 		clusterName, associationID string) error
+
+	getPodIdentityAssociationTags(self bool, roleArn, region,
+		clusterName, associationID string) (map[string]string, error)
 }
 
 type clientInterface interface {
@@ -47,11 +50,6 @@ type clientInterface interface {
 	listTaggedAssociationIDs(roleArn, clusterName,
 		region string, tags map[string]string,
 		m metrics) ([]string, error)
-
-	listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
-		region string, tags map[string]string,
-		fullAssociationList []podIdentityAssociation,
-		m metrics) ([]podIdentityAssociation, error)
 
 	clientPIA
 }
@@ -329,21 +327,10 @@ func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	return piaList, nil
 }
 
-func (c *realClient) listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
-	region string, tags map[string]string,
-	fullAssociationList []podIdentityAssociation,
-	m metrics) ([]podIdentityAssociation, error) {
+func (c *realClient) getPodIdentityAssociationTags(self bool, roleArn, region,
+	clusterName, associationID string) (map[string]string, error) {
 
-	begin := time.Now()
-	var status string
-
-	defer func() {
-		m.recordAPILatency(clusterName,
-			apiEksDescribePodIdentityAssociation, status,
-			time.Since(begin))
-	}()
-
-	return nil, errors.New("realClient.listTaggedPodIdentityAssociationsWithDescribe FIXME WRITEME TODO XXX")
+	return nil, errors.New("realClient.getPodIdentityAssociationTags FIXME WRITEME TODO XXX")
 }
 
 func (c *realClient) listTaggedAssociationIDs(roleArn, clusterName,

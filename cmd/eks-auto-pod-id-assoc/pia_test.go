@@ -142,3 +142,9 @@ func (m *clientPIAMock) deletePodIdentityAssociation(_ bool, _, _,
 	time.Sleep(m.delay)
 	return nil
 }
+
+func (m *clientPIAMock) getPodIdentityAssociationTags(_ bool, _, _,
+	_, _ string) (map[string]string, error) {
+	time.Sleep(m.delay)
+	return nil, nil
+}

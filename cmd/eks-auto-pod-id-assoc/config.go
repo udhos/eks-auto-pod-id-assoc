@@ -158,6 +158,12 @@ func defaultConfig(cfg config) config {
 			cl.PodIdentityAssociationTags = defaultTags
 			cfg.Clusters[c] = cl // write back
 		}
+
+		if cl.MaxConcurrency < 1 {
+			cl.MaxConcurrency = defaultMaxConcurrency
+			cfg.Clusters[c] = cl // write back
+		}
+
 	}
 	return cfg
 }

@@ -288,7 +288,8 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 func (a *application) listAssociations(self bool, roleArn, region,
 	clusterName string, tags map[string]string,
 	purgeExternalStaleAssociations,
-	forceIterativeAssociationDiscovery bool) ([]podIdentityAssociation, error) {
+	forceIterativeAssociationDiscovery bool,
+	maxConcurrency int) ([]podIdentityAssociation, error) {
 
 	const me = "application.listAssociations"
 
@@ -305,8 +306,8 @@ func (a *application) listAssociations(self bool, roleArn, region,
 	}
 
 	if forceIterativeAssociationDiscovery {
-		return a.client.listTaggedPodIdentityAssociationsWithDescribe(roleArn, clusterName,
-			region, tags, allAssocs, a.metrics)
+		return listTaggedPodIdentityAssociationsWithDescribe(context.TODO(), a.client,
+			allAssocs, a.metrics, self, roleArn, region, clusterName, tags, maxConcurrency)
 	}
 
 	// query GetResources for all associations with our tags
@@ -372,7 +373,8 @@ func (a *application) discoverOneCluster(c configCluster, clusterName string) (c
 
 	piaList, errPIA := a.listAssociations(c.Self, c.RoleArn, c.Region,
 		clusterName, c.PodIdentityAssociationTags,
-		c.PurgeExternalStaleAssociations, c.ForceIterativeAssociationDiscovery)
+		c.PurgeExternalStaleAssociations,
+		c.ForceIterativeAssociationDiscovery, c.MaxConcurrency)
 
 	elapsedPIA := time.Since(beginPIA)
 

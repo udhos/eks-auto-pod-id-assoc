@@ -21,10 +21,6 @@ func createPodIdentityAssociations(ctx context.Context,
 
 	clusterLabel := getClusterLabel(roleArn, region, clusterName)
 
-	if maxGoroutines < 1 {
-		maxGoroutines = defaultMaxConcurrency
-	}
-
 	// ErrGroup with a limit is the modern 'Sempahore + WaitGroup'
 	// It also handles context cancellation automatically.
 	g, _ := errgroup.WithContext(ctx)
@@ -69,10 +65,6 @@ func deletePodIdentityAssociations(ctx context.Context,
 
 	clusterLabel := getClusterLabel(roleArn, region, clusterName)
 
-	if maxGoroutines < 1 {
-		maxGoroutines = defaultMaxConcurrency
-	}
-
 	// ErrGroup manages the pool and the limit natively
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(maxGoroutines)
@@ -105,4 +97,48 @@ func deletePodIdentityAssociations(ctx context.Context,
 	}
 
 	_ = g.Wait()
+}
+
+func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
+	client clientPIA,
+	fullAssociationList []podIdentityAssociation, m metrics,
+	self bool, roleArn, region, clusterName string,
+	tags map[string]string,
+	maxGoroutines int) ([]podIdentityAssociation, error) {
+
+	var result []podIdentityAssociation
+
+	for _, pia := range fullAssociationList {
+
+		clusterLabel := getClusterLabel(roleArn, region, clusterName)
+
+		assocTags, err := client.getPodIdentityAssociationTags(self, roleArn,
+			region, clusterName, pia.AssociationID)
+		if err != nil {
+			return nil, fmt.Errorf("error describing association: %s: associationID=%s: error: %w",
+				clusterLabel, pia.AssociationID, err)
+		}
+
+		if hasTags(assocTags, tags) {
+			result = append(result, pia)
+		}
+	}
+
+	return result, nil
+}
+
+func hasTags(tags, required map[string]string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	for k, v := range required {
+		vv, found := tags[k]
+		if !found {
+			return false // required tag key not found
+		}
+		if vv != v {
+			return false // requied tag value not found
+		}
+	}
+	return true
 }
