@@ -121,7 +121,7 @@ With Docker:
 docker run --rm -v ./config.yaml:/config.yaml udhos/eks-auto-pod-id-assoc:latest
 ```
 
-The tool will start monitoring Service Accounts and, if `DRY_RUN=false`, automatically create/delete Pod Identity Associations based on the `eks.amazonaws.com/role-arn` annotation.
+The tool will start monitoring Service Accounts and, if `DRY=false` (it defaults to `true`), automatically create/delete Pod Identity Associations based on the `eks.amazonaws.com/role-arn` annotation.
 
 For production deployments, consider using the [Helm chart](#helm-chart) or see [Topologies](#topologies) for advanced configurations.
 
