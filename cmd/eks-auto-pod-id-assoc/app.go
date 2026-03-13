@@ -289,10 +289,49 @@ func (a *application) listAssociations(self bool, roleArn, region,
 	clusterName string, tags map[string]string,
 	purgeExternalStaleAssociations bool) ([]podIdentityAssociation, error) {
 
-	piaList, err := a.client.listPodIdentityAssociations(self, roleArn,
-		region, clusterName, tags, purgeExternalStaleAssociations, a.metrics)
+	const me = "application.listAssociations"
 
-	return piaList, err
+	// If purge is enabled, we don't care about tags; return everything.
+	if purgeExternalStaleAssociations {
+		return a.client.listPodIdentityAssociations(self, roleArn,
+			region, clusterName, a.metrics)
+	}
+
+	// 1/3 - query GetResources for all associations with our tags
+	// This returns ARNs of resources that match the "managed-by" tags.
+	taggedAssocIDs, errTags := a.client.listTaggedAssociationIDs(roleArn, clusterName,
+		region, tags, a.metrics)
+	if errTags != nil {
+		return nil, fmt.Errorf("%s: failed to get tagged resources: %w", me, errTags)
+	}
+
+	debugf("%s: found tagged associations: %d", me, len(taggedAssocIDs))
+
+	for _, id := range taggedAssocIDs {
+		debugf("%s: found tagged association: %s", me, id)
+	}
+
+	// 2/3 - get full associations list with listAssociations
+	allAssocs, errList := a.client.listPodIdentityAssociations(self, roleArn,
+		region, clusterName, a.metrics)
+	if errList != nil {
+		return nil, errList
+	}
+
+	// 3/3 - pick only associations that appeared in our tagged list
+	var result []podIdentityAssociation
+	for _, assoc := range allAssocs {
+		for _, tagged := range taggedAssocIDs {
+			if assoc.AssociationID == tagged {
+				result = append(result, assoc)
+			}
+		}
+	}
+
+	infof("%s: region=%q cluster=%q filtered tagged associations: %d/%d",
+		me, region, clusterName, len(result), len(allAssocs))
+
+	return result, nil
 }
 
 func (a *application) discoverOneCluster(c configCluster, clusterName string) (cluster, error) {

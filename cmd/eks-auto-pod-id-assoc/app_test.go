@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"slices"
 	"sync"
 	"testing"
 
@@ -869,10 +869,28 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listPodIdentityAssociations(self bool, roleArn, region,
-	clusterName string, tags map[string]string,
-	purgeExternalStaleAssociations bool,
-	_ metrics) ([]podIdentityAssociation, error) {
+func (c *mockClient) listTaggedAssociationIDs(_, clusterName,
+	region string, tags map[string]string,
+	_ metrics) ([]string, error) {
+
+	cluster, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	var list []string
+
+	for assocID, assocTags := range cluster.tags {
+		if hasTags(assocTags, tags) {
+			list = append(list, assocID)
+		}
+	}
+
+	return list, nil
+}
+
+func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
+	clusterName string, _ metrics) ([]podIdentityAssociation, error) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -881,36 +899,12 @@ func (c *mockClient) listPodIdentityAssociations(self bool, roleArn, region,
 		region = "self"
 	}
 
-	clusterLabel := getClusterLabel(roleArn, region, clusterName)
-
-	clusters := c.regions[region]
-
-	for _, cluster := range clusters {
-		if cluster.clusterName == clusterName {
-			var list []podIdentityAssociation
-
-			for _, pia := range cluster.podIdentityAssociations {
-				if purgeExternalStaleAssociations {
-					list = append(list, pia)
-					continue
-				}
-
-				// Filter by tag
-				piaTags := cluster.getTags(pia.AssociationID)
-				if hasTags(piaTags, tags) {
-					list = append(list, pia)
-				}
-			}
-
-			// Return a COPY so the app doesn't race with our internal state
-			result := make([]podIdentityAssociation, len(list))
-			copy(result, list)
-			return result, nil
-		}
+	cl, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("mockClient.listPodIdentityAssociations: cluster (%s) not found: clusters: %v",
-		clusterLabel, clusters)
+	return slices.Clone(cl.podIdentityAssociations), nil
 }
 
 func hasTags(tags, required map[string]string) bool {
