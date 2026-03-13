@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -61,13 +62,15 @@ func TestCreatePodIdentityAssociations(t *testing.T) {
 
 	elapsed2 := time.Since(begin2)
 
-	if elapsed < elapsed2 {
-		t.Errorf("%d service accounts x %v delay: 1 goroutine elapsed: %v < %d goroutines elapsed: %v",
-			serviceAccounts, delay, elapsed, manyGoroutines, elapsed2)
+	const factor = manyGoroutines - 1 // 5 goroutines should take 4x less time (N-1)
+
+	if elapsed < factor*elapsed2 {
+		t.Errorf("%d service accounts x %v delay: 1 goroutine elapsed: %v < %d goroutines elapsed: %v * %d",
+			serviceAccounts, delay, elapsed, manyGoroutines, elapsed2, factor)
 	}
 
-	t.Logf("%d service accounts x %v delay: 1 goroutine elapsed: %v, %d goroutines elapsed: %v",
-		serviceAccounts, delay, elapsed, manyGoroutines, elapsed2)
+	t.Logf("%d service accounts x %v delay: 1 goroutine elapsed: %v, %d goroutines elapsed: %v * %d",
+		serviceAccounts, delay, elapsed, manyGoroutines, elapsed2, factor)
 }
 
 // go test -v -count 1 -run '^TestDeletePodIdentityAssociations$' ./...
@@ -118,13 +121,76 @@ func TestDeletePodIdentityAssociations(t *testing.T) {
 
 	elapsed2 := time.Since(begin2)
 
-	if elapsed < elapsed2 {
-		t.Errorf("%d associations x %v delay: 1 goroutine elapsed: %v < %d goroutines elapsed: %v",
-			associations, delay, elapsed, manyGoroutines, elapsed2)
+	const factor = manyGoroutines - 1 // 5 goroutines should take 4x less time (N-1)
+
+	if elapsed < factor*elapsed2 {
+		t.Errorf("%d associations x %v delay: 1 goroutine elapsed: %v < %d goroutines elapsed: %v * %d",
+			associations, delay, elapsed, manyGoroutines, elapsed2, factor)
 	}
 
-	t.Logf("%d associations x %v delay: 1 goroutine elapsed: %v, %d goroutines elapsed: %v",
-		associations, delay, elapsed, manyGoroutines, elapsed2)
+	t.Logf("%d associations x %v delay: 1 goroutine elapsed: %v, %d goroutines elapsed: %v * %d",
+		associations, delay, elapsed, manyGoroutines, elapsed2, factor)
+}
+
+// go test -v -count 1 -run '^TestGetPodIdentityAssociationTags$' ./...
+func TestGetPodIdentityAssociationTags(t *testing.T) {
+
+	slogLevelError()
+
+	const delay = 10 * time.Millisecond
+
+	client := &clientPIAMock{delay: delay}
+
+	var list []podIdentityAssociation
+
+	const associations = 100
+
+	for i := range associations {
+		list = append(list, podIdentityAssociation{AssociationID: fmt.Sprintf("assoc-%d", i)})
+	}
+
+	const (
+		sampleRate      = 1.0
+		dogstatsdEnable = false
+	)
+
+	m := newMetrics("ns", defaultLatencyBucketsSeconds, sampleRate, dogstatsdEnable)
+
+	const (
+		self          = false
+		roleArn       = "role1"
+		region        = "region1"
+		cluster       = "cluster1"
+		maxGoroutines = 1
+	)
+
+	begin := time.Now()
+
+	tags := defaultTags
+
+	listTaggedPodIdentityAssociationsWithDescribe(context.TODO(), client, list, m, self,
+		roleArn, region, cluster, tags, maxGoroutines)
+
+	elapsed := time.Since(begin)
+
+	begin2 := time.Now()
+
+	const manyGoroutines = defaultMaxConcurrency
+
+	listTaggedPodIdentityAssociationsWithDescribe(context.TODO(), client, list, m, self,
+		roleArn, region, cluster, tags, manyGoroutines)
+
+	elapsed2 := time.Since(begin2)
+
+	const factor = manyGoroutines - 1 // 5 goroutines should take 4x less time (N-1)
+
+	if elapsed < factor*elapsed2 {
+		t.Errorf("%d associations x %v delay: 1 goroutine elapsed: %v < %d goroutines elapsed: %v * %d",
+			associations, delay, elapsed, manyGoroutines, elapsed2, factor)
+	}
+
+	t.Logf("%d associations x %v delay: 1 goroutine elapsed: %v, %d goroutines elapsed: %v * %d",
+		associations, delay, elapsed, manyGoroutines, elapsed2, factor)
 }
 
 type clientPIAMock struct {
@@ -141,4 +207,10 @@ func (m *clientPIAMock) deletePodIdentityAssociation(_ bool, _, _,
 	_, _ string) error {
 	time.Sleep(m.delay)
 	return nil
+}
+
+func (m *clientPIAMock) getPodIdentityAssociationTags(_ bool, _, _,
+	_, _ string) (map[string]string, error) {
+	time.Sleep(m.delay)
+	return nil, nil
 }

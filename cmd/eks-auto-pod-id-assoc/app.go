@@ -285,39 +285,102 @@ func (a *application) findClusterNames(c configCluster) ([]string, error) {
 	return clusterNames, nil
 }
 
+func (a *application) listAssociations(self bool, roleArn, region,
+	clusterName string, tags map[string]string,
+	purgeExternalStaleAssociations,
+	forceIterativeAssociationDiscovery bool,
+	maxConcurrency int) ([]podIdentityAssociation, error) {
+
+	const me = "application.listAssociations"
+
+	// get full associations list with listAssociations
+	allAssocs, errList := a.client.listPodIdentityAssociations(self, roleArn,
+		region, clusterName, a.metrics)
+	if errList != nil {
+		return nil, errList
+	}
+
+	// If purge is enabled, we don't care about tags; return everything.
+	if purgeExternalStaleAssociations {
+		return allAssocs, nil
+	}
+
+	if forceIterativeAssociationDiscovery {
+		return listTaggedPodIdentityAssociationsWithDescribe(context.TODO(), a.client,
+			allAssocs, a.metrics, self, roleArn, region, clusterName, tags, maxConcurrency)
+	}
+
+	// query GetResources for all associations with our tags
+	taggedAssocIDs, errTags := a.client.listTaggedAssociationIDs(roleArn, clusterName,
+		region, tags, a.metrics)
+	if errTags != nil {
+		return nil, fmt.Errorf("%s: failed to get tagged resources: %w", me, errTags)
+	}
+
+	debugf("%s: found tagged associations: %d", me, len(taggedAssocIDs))
+
+	for _, id := range taggedAssocIDs {
+		debugf("%s: found tagged association: %s", me, id)
+	}
+
+	// pick only associations that appeared in our tagged list
+	var result []podIdentityAssociation
+	for _, assoc := range allAssocs {
+		for _, tagged := range taggedAssocIDs {
+			if assoc.AssociationID == tagged {
+				result = append(result, assoc)
+			}
+		}
+	}
+
+	infof("%s: region=%q cluster=%q filtered tagged associations: %d/%d",
+		me, region, clusterName, len(result), len(allAssocs))
+
+	return result, nil
+}
+
 func (a *application) discoverOneCluster(c configCluster, clusterName string) (cluster, error) {
 	beginSA := time.Now()
 
-	saList, err := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
+	//
+	// service accounts
+	//
+
+	saList, errSA := a.client.listServiceAccounts(c.Self, c.RoleArn, c.Region,
 		clusterName, c.Annotation)
 
 	elapsedSA := time.Since(beginSA)
 
 	a.metrics.recordAPILatency(clusterName,
-		apiServiceAccountsList, getAPIStatus(err),
+		apiServiceAccountsList, getAPIStatus(errSA),
 		elapsedSA)
 
-	if err != nil {
+	if errSA != nil {
 		return cluster{}, fmt.Errorf("failed to list service accounts for cluster %s: elapsed=%v: %w",
-			clusterName, elapsedSA, err)
+			clusterName, elapsedSA, errSA)
 	}
 
 	saTotal := len(saList)
+
+	//
+	// pod identity associations
+	//
 
 	infof("listServiceAccounts: cluster=%q elapsed=%v found=%d",
 		clusterName, elapsedSA, saTotal)
 
 	beginPIA := time.Now()
 
-	piaList, err := a.client.listPodIdentityAssociations(c.Self, c.RoleArn,
-		c.Region, clusterName, c.PodIdentityAssociationTags,
-		c.PurgeExternalStaleAssociations, a.metrics)
+	piaList, errPIA := a.listAssociations(c.Self, c.RoleArn, c.Region,
+		clusterName, c.PodIdentityAssociationTags,
+		c.PurgeExternalStaleAssociations,
+		c.ForceIterativeAssociationDiscovery, c.MaxConcurrency)
 
 	elapsedPIA := time.Since(beginPIA)
 
-	if err != nil {
+	if errPIA != nil {
 		return cluster{}, fmt.Errorf("failed to list pod identity associations for cluster %s: elapsed=%v: %w",
-			clusterName, elapsedPIA, err)
+			clusterName, elapsedPIA, errPIA)
 	}
 
 	piaTotal := len(piaList)

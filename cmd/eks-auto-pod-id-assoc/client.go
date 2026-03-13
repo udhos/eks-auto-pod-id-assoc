@@ -24,6 +24,9 @@ type clientPIA interface {
 
 	deletePodIdentityAssociation(self bool, roleArn, region,
 		clusterName, associationID string) error
+
+	getPodIdentityAssociationTags(self bool, roleArn, region,
+		clusterName, associationID string) (map[string]string, error)
 }
 
 type clientInterface interface {
@@ -41,9 +44,11 @@ type clientInterface interface {
 		clusterName, annotationKey string) ([]serviceAccount, error)
 
 	listPodIdentityAssociations(self bool, roleArn, region,
-		clusterName string, tags map[string]string,
-		purgeExternalStaleAssociations bool,
-		m metrics) ([]podIdentityAssociation, error)
+		clusterName string, m metrics) ([]podIdentityAssociation, error)
+
+	listTaggedAssociationIDs(roleArn, clusterName,
+		region string, tags map[string]string,
+		m metrics) ([]string, error)
 
 	clientPIA
 }
@@ -267,8 +272,10 @@ func (c *realClient) listServiceAccounts(self bool, roleArn, region,
 	return result, nil
 }
 
-func (c *realClient) listAssociations(caller, roleArn, region,
+func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
 	clusterName string, m metrics) ([]podIdentityAssociation, error) {
+
+	const me = "listPodIdentityAssociations"
 
 	begin := time.Now()
 	var status string
@@ -283,7 +290,7 @@ func (c *realClient) listAssociations(caller, roleArn, region,
 	if errEks != nil {
 		status = getAPIStatus(errEks)
 		return nil, fmt.Errorf("%s: could not get EKS client: %w",
-			caller, errEks)
+			me, errEks)
 	}
 
 	var maxResults int32 = 100 // 1..100
@@ -300,7 +307,7 @@ func (c *realClient) listAssociations(caller, roleArn, region,
 		page, errPage := paginator.NextPage(context.TODO())
 		if errPage != nil {
 			status = getAPIStatus(errPage)
-			return nil, fmt.Errorf("%s: failed to get page: %w", caller, errPage)
+			return nil, fmt.Errorf("%s: failed to get page: %w", me, errPage)
 		}
 		for _, assoc := range page.Associations {
 			pia := podIdentityAssociation{
@@ -314,64 +321,42 @@ func (c *realClient) listAssociations(caller, roleArn, region,
 	}
 
 	infof("%s: region=%q cluster=%q found pod identity associations: %d",
-		caller, region, clusterName, len(piaList))
+		me, region, clusterName, len(piaList))
 
 	return piaList, nil
 }
 
-func (c *realClient) listPodIdentityAssociations(_ bool, roleArn, region,
-	clusterName string, tags map[string]string,
-	purgeExternalStaleAssociations bool,
-	m metrics) ([]podIdentityAssociation, error) {
+func (c *realClient) getPodIdentityAssociationTags(_ bool, roleArn, region,
+	clusterName, associationID string) (map[string]string, error) {
 
-	const me = "listPodIdentityAssociations"
+	const me = "getPodIdentityAssociationTags"
 
-	// If purge is enabled, we don't care about tags; return everything.
-	if purgeExternalStaleAssociations {
-		return c.listAssociations(me, roleArn, region, clusterName, m)
+	clusterLabel := getClusterLabel(roleArn, region, clusterName)
+
+	clientEks, errEks := c.getEKSClient(roleArn, region)
+	if errEks != nil {
+		return nil, fmt.Errorf("%s: could not get EKS client: %w",
+			me, errEks)
 	}
 
-	// 1/3 - query GetResources for all associations with our tags
-	// This returns ARNs of resources that match the "managed-by" tags.
-	taggedARNs, errTags := c.getTaggedResourceARNs(roleArn, clusterName,
-		region, tags, m)
-	if errTags != nil {
-		return nil, fmt.Errorf("%s: failed to get tagged resources: %w", me, errTags)
+	input := &eks.DescribePodIdentityAssociationInput{
+		ClusterName:   aws.String(clusterName),
+		AssociationId: aws.String(associationID),
 	}
 
-	debugf("%s: found tagged associations: %d", me, len(taggedARNs))
+	resp, errDesc := clientEks.DescribePodIdentityAssociation(context.TODO(), input)
+	if errDesc != nil {
+		return nil, fmt.Errorf("%s: could not describe association %s associationID=%s: %w",
+			me, associationID, clusterLabel, errDesc)
 
-	for k := range taggedARNs {
-		debugf("%s: found tagged association: %s", me, k)
 	}
 
-	// 2/3 - get full associations list with listAssociations
-	allAssocs, errList := c.listAssociations(me, roleArn, region,
-		clusterName, m)
-	if errList != nil {
-		return nil, errList
-	}
-
-	// 3/3 - pick only associations that appeared in our tagged list
-	var result []podIdentityAssociation
-	for _, assoc := range allAssocs {
-		// Construct the ARN for this association to match against GetResources output
-		// Format: arn:aws:eks:<region>:<account>:podidentityassociation/<cluster>/<uuid>
-		// Note: Constructing the ARN manually is faster than describing each one.
-		if _, found := taggedARNs[assoc.AssociationID]; found {
-			result = append(result, assoc)
-		}
-	}
-
-	infof("%s: region=%q cluster=%q filtered tagged associations: %d/%d",
-		me, region, clusterName, len(result), len(allAssocs))
-
-	return result, nil
+	return resp.Association.Tags, nil
 }
 
-func (c *realClient) getTaggedResourceARNs(roleArn, clusterName,
+func (c *realClient) listTaggedAssociationIDs(roleArn, clusterName,
 	region string, tags map[string]string,
-	m metrics) (map[string]bool, error) {
+	m metrics) ([]string, error) {
 
 	begin := time.Now()
 	var status string
@@ -404,7 +389,8 @@ func (c *realClient) getTaggedResourceARNs(roleArn, clusterName,
 		})
 	}
 
-	taggedIDs := make(map[string]bool)
+	var taggedIDs []string
+
 	paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(tagClient,
 		&resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: []string{"eks:podidentityassociation"},
@@ -423,7 +409,7 @@ func (c *realClient) getTaggedResourceARNs(roleArn, clusterName,
 			parts := strings.Split(arn, "/")
 			if len(parts) > 0 {
 				id := parts[len(parts)-1]
-				taggedIDs[id] = true
+				taggedIDs = append(taggedIDs, id)
 			}
 		}
 	}

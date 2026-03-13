@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"maps"
+	"slices"
 	"sync"
 	"testing"
 
@@ -9,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// go test -count 1 -run '^TestDiscoveryRegion$' ./...
 func TestDiscoveryRegion(t *testing.T) {
 
 	const conf = `
@@ -195,6 +198,111 @@ clusters:
 		}
 	}
 
+}
+
+// go test -count 1 -run '^TestAddServiceAccountWithDescribe$' ./...
+func TestAddServiceAccountWithDescribe(t *testing.T) {
+
+	const conf = `
+clusters:
+  - region: us-east-1
+    cluster_name: ^example-cluster-2$
+    force_iterative_association_discovery: true
+`
+
+	cfg, err := loadConfig([]byte(conf))
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	client := newMockClient()
+
+	const namespace = ""
+	const sampleRate = 1.0
+	const dogstatsEnable = false
+
+	met := newMetrics(namespace, defaultLatencyBucketsSeconds, sampleRate,
+		dogstatsEnable)
+
+	app := newApplication(cfg, met, client)
+
+	{
+		clusterList := app.discoverClusters()
+		foundClusters := len(clusterList)
+		if foundClusters != 1 {
+			t.Fatalf("found %d clusters, expected 1", foundClusters)
+		}
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 1 {
+			t.Fatalf("found %d service accounts, expected 1", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	app.run()
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 1 {
+			t.Fatalf("after run 1: found %d service accounts, expected 1", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("after run 1: found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	// add SA
+	{
+		cl := client.regions["us-east-1"][0]
+		sa := serviceAccount{
+			Name:       "newSa",
+			Namespace:  "default",
+			AwsRoleArn: "newAwsRoleARN",
+		}
+		cl.serviceAccounts = append(cl.serviceAccounts, sa)
+		client.regions["us-east-1"][0] = cl
+	}
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 2 {
+			t.Fatalf("after SA: found %d service accounts, expected 2", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 1 {
+			t.Fatalf("after SA: found %d PIAs, expected 1", countPIAs)
+		}
+	}
+
+	app.run()
+
+	client.countDescribes = 0
+
+	{
+		clusterList := app.discoverClusters() // reload
+		cl := clusterList[0]
+		countServiceAccounts := len(cl.ServiceAccounts)
+		if countServiceAccounts != 2 {
+			t.Fatalf("after run 2: found %d service accounts, expected 2", countServiceAccounts)
+		}
+		countPIAs := len(cl.PodIdentityAssociations)
+		if countPIAs != 2 {
+			t.Fatalf("after run 2: found %d PIAs, expected 2", countPIAs)
+		}
+	}
+
+	if client.countDescribes != 2 {
+		t.Fatalf("expected 2 describes, found %d", client.countDescribes)
+	}
 }
 
 func TestRemoveServiceAccount(t *testing.T) {
@@ -825,8 +933,9 @@ clusters:
 }
 
 type mockClient struct {
-	regions map[string][]mockCluster // region -> clusters
-	mu      sync.Mutex
+	regions        map[string][]mockCluster // region -> clusters
+	mu             sync.Mutex
+	countDescribes int
 }
 
 type mockCluster struct {
@@ -867,10 +976,28 @@ func (c *mockClient) listServiceAccounts(self bool, _, region,
 	return nil, errors.New("cluster not found")
 }
 
-func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
-	clusterName string, tags map[string]string,
-	purgeExternalStaleAssociations bool,
-	_ metrics) ([]podIdentityAssociation, error) {
+func (c *mockClient) listTaggedAssociationIDs(_, clusterName,
+	region string, tags map[string]string,
+	_ metrics) ([]string, error) {
+
+	cluster, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	var list []string
+
+	for assocID, assocTags := range cluster.tags {
+		if hasTags(assocTags, tags) {
+			list = append(list, assocID)
+		}
+	}
+
+	return list, nil
+}
+
+func (c *mockClient) getPodIdentityAssociationTags(self bool, roleArn, region,
+	clusterName, associationID string) (map[string]string, error) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -879,46 +1006,37 @@ func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
 		region = "self"
 	}
 
-	for _, cluster := range c.regions[region] {
-		if cluster.clusterName == clusterName {
-			var list []podIdentityAssociation
+	c.countDescribes++
 
-			for _, pia := range cluster.podIdentityAssociations {
-				if purgeExternalStaleAssociations {
-					list = append(list, pia)
-					continue
-				}
+	label := getClusterLabel(roleArn, region, clusterName)
 
-				// Filter by tag
-				piaTags := cluster.getTags(pia.AssociationID)
-				if hasTags(piaTags, tags) {
-					list = append(list, pia)
-				}
-			}
+	infof("getPodIdentityAssociationTags: %s: assocID=%s describes=%d",
+		label, associationID, c.countDescribes)
 
-			// Return a COPY so the app doesn't race with our internal state
-			result := make([]podIdentityAssociation, len(list))
-			copy(result, list)
-			return result, nil
-		}
+	cl, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("cluster not found")
+
+	return maps.Clone(cl.getTags(associationID)), nil
 }
 
-func hasTags(tags, required map[string]string) bool {
-	if len(required) == 0 {
-		return true
+func (c *mockClient) listPodIdentityAssociations(self bool, _, region,
+	clusterName string, _ metrics) ([]podIdentityAssociation, error) {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if self {
+		region = "self"
 	}
-	for k, v := range required {
-		vv, found := tags[k]
-		if !found {
-			return false // required tag key not found
-		}
-		if vv != v {
-			return false // requied tag value not found
-		}
+
+	cl, err := c.findCluster(region, clusterName)
+	if err != nil {
+		return nil, err
 	}
-	return true
+
+	return slices.Clone(cl.podIdentityAssociations), nil
 }
 
 func (c *mockClient) createPodIdentityAssociation(self bool, _, region,

@@ -8,6 +8,7 @@
                 "eks:ListClusters",
                 "eks:DescribeCluster",
                 "eks:ListPodIdentityAssociations",
+                "eks:DescribePodIdentityAssociation",
                 "eks:CreatePodIdentityAssociation",
                 "eks:DeletePodIdentityAssociation",
                 "eks:TagResource",

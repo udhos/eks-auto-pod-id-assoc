@@ -12,16 +12,17 @@ type config struct {
 }
 
 type configCluster struct {
-	RoleArn                        string                `yaml:"role_arn"`
-	Region                         string                `yaml:"region"`
-	ClusterName                    string                `yaml:"cluster_name"`
-	Self                           bool                  `yaml:"self"`
-	Annotation                     string                `yaml:"annotation"`
-	ExcludeServiceAccounts         []matchServiceAccount `yaml:"exclude_service_accounts"`
-	RestrictRoles                  []restrictRole        `yaml:"restrict_roles"`
-	PodIdentityAssociationTags     map[string]string     `yaml:"pod_identity_association_tags"`
-	MaxConcurrency                 int                   `yaml:"max_concurrency"`
-	PurgeExternalStaleAssociations bool                  `yaml:"purge_external_stale_associations"`
+	RoleArn                            string                `yaml:"role_arn"`
+	Region                             string                `yaml:"region"`
+	ClusterName                        string                `yaml:"cluster_name"`
+	Self                               bool                  `yaml:"self"`
+	Annotation                         string                `yaml:"annotation"`
+	ExcludeServiceAccounts             []matchServiceAccount `yaml:"exclude_service_accounts"`
+	RestrictRoles                      []restrictRole        `yaml:"restrict_roles"`
+	PodIdentityAssociationTags         map[string]string     `yaml:"pod_identity_association_tags"`
+	MaxConcurrency                     int                   `yaml:"max_concurrency"`
+	PurgeExternalStaleAssociations     bool                  `yaml:"purge_external_stale_associations"`
+	ForceIterativeAssociationDiscovery bool                  `yaml:"force_iterative_association_discovery"`
 }
 
 const defaultMaxConcurrency = 5
@@ -157,6 +158,12 @@ func defaultConfig(cfg config) config {
 			cl.PodIdentityAssociationTags = defaultTags
 			cfg.Clusters[c] = cl // write back
 		}
+
+		if cl.MaxConcurrency < 1 {
+			cl.MaxConcurrency = defaultMaxConcurrency
+			cfg.Clusters[c] = cl // write back
+		}
+
 	}
 	return cfg
 }

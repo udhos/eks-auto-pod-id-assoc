@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -21,10 +22,6 @@ func createPodIdentityAssociations(ctx context.Context,
 
 	clusterLabel := getClusterLabel(roleArn, region, clusterName)
 
-	if maxGoroutines < 1 {
-		maxGoroutines = defaultMaxConcurrency
-	}
-
 	// ErrGroup with a limit is the modern 'Sempahore + WaitGroup'
 	// It also handles context cancellation automatically.
 	g, _ := errgroup.WithContext(ctx)
@@ -41,9 +38,8 @@ func createPodIdentityAssociations(ctx context.Context,
 				tags)
 
 			elap := time.Since(begin)
-			m.recordAPILatency(clusterName,
-				apiEksCreatePodIdentityAssociation, getAPIStatus(err),
-				elap)
+			m.recordAPILatency(clusterName, apiEksCreatePodIdentityAssociation,
+				getAPIStatus(err), elap)
 
 			if err != nil {
 				errorf("%s failure creating pod identity association %s: serviceAccount=%q serviceAccountRoleArn=%q elapsed=%v: %v",
@@ -69,10 +65,6 @@ func deletePodIdentityAssociations(ctx context.Context,
 
 	clusterLabel := getClusterLabel(roleArn, region, clusterName)
 
-	if maxGoroutines < 1 {
-		maxGoroutines = defaultMaxConcurrency
-	}
-
 	// ErrGroup manages the pool and the limit natively
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(maxGoroutines)
@@ -87,9 +79,8 @@ func deletePodIdentityAssociations(ctx context.Context,
 				region, clusterName, pia.AssociationID)
 
 			elap := time.Since(begin)
-			m.recordAPILatency(clusterName,
-				apiEksDeletePodIdentityAssociation, getAPIStatus(err),
-				elap)
+			m.recordAPILatency(clusterName, apiEksDeletePodIdentityAssociation,
+				getAPIStatus(err), elap)
 
 			if err != nil {
 				errorf("%s failure deleting pod identity association %s: associationID=%q serviceAccount=%q elapsed=%v: %v",
@@ -105,4 +96,73 @@ func deletePodIdentityAssociations(ctx context.Context,
 	}
 
 	_ = g.Wait()
+}
+
+func listTaggedPodIdentityAssociationsWithDescribe(ctx context.Context,
+	client clientPIA,
+	fullAssociationList []podIdentityAssociation, m metrics,
+	self bool, roleArn, region, clusterName string,
+	tags map[string]string,
+	maxGoroutines int) ([]podIdentityAssociation, error) {
+
+	clusterLabel := getClusterLabel(roleArn, region, clusterName)
+
+	var result []podIdentityAssociation
+	var mu sync.Mutex
+
+	// ErrGroup manages the pool and the limit natively
+	g, _ := errgroup.WithContext(ctx)
+	g.SetLimit(maxGoroutines)
+
+	for i, pia := range fullAssociationList {
+
+		g.Go(func() error {
+			label := fmt.Sprintf("%d/%d", i+1, len(fullAssociationList))
+
+			begin := time.Now()
+
+			assocTags, err := client.getPodIdentityAssociationTags(self, roleArn,
+				region, clusterName, pia.AssociationID)
+
+			elap := time.Since(begin)
+			m.recordAPILatency(clusterName, apiEksDescribePodIdentityAssociation,
+				getAPIStatus(err), elap)
+
+			if err != nil {
+				return fmt.Errorf("error describing association: %s: associationID=%s: error: %w",
+					clusterLabel, pia.AssociationID, err)
+			}
+
+			debugf("%s getPodIdentityAssociationTags %s: associationID=%q serviceAccount=%q elapsed=%v",
+				clusterLabel, label, pia.AssociationID, pia.ServiceAccountName, elap)
+
+			if hasTags(assocTags, tags) {
+				mu.Lock()
+				result = append(result, pia)
+				mu.Unlock()
+			}
+
+			return nil
+		})
+	}
+
+	_ = g.Wait()
+
+	return result, nil
+}
+
+func hasTags(tags, required map[string]string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	for k, v := range required {
+		vv, found := tags[k]
+		if !found {
+			return false // required tag key not found
+		}
+		if vv != v {
+			return false // requied tag value not found
+		}
+	}
+	return true
 }
