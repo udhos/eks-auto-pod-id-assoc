@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -66,22 +67,29 @@ type podIdentityAssociation struct {
 	ServiceAccountName      string `yaml:"service_account_name"`
 }
 
-func newRealClient(prog string, dry bool, metrics metrics) *realClient {
+type realClient struct {
+	prog            string
+	dry             bool
+	metrics         metrics
+	kubeClientCache map[string]*kubernetes.Clientset
+
+	eksClientCache   map[string]*eks.Client
+	eksClientCacheMu sync.Mutex
+
+	eksGen eksClientFactory
+}
+
+func newRealClient(prog string, dry bool, metrics metrics,
+	eksGen eksClientFactory) *realClient {
+
 	return &realClient{
 		prog:            prog,
 		dry:             dry,
 		metrics:         metrics,
 		kubeClientCache: map[string]*kubernetes.Clientset{},
 		eksClientCache:  map[string]*eks.Client{},
+		eksGen:          eksGen,
 	}
-}
-
-type realClient struct {
-	prog            string
-	dry             bool
-	metrics         metrics
-	kubeClientCache map[string]*kubernetes.Clientset
-	eksClientCache  map[string]*eks.Client
 }
 
 func kubeClientCacheKey(self bool, roleArn, region,
@@ -104,21 +112,18 @@ func (c *realClient) putKubeClientCache(self bool, roleArn, region,
 func (c *realClient) getEKSClient(roleArn, region string) (*eks.Client, error) {
 
 	cacheKey := fmt.Sprintf("%s-%s", roleArn, region)
+
+	c.eksClientCacheMu.Lock()
+	defer c.eksClientCacheMu.Unlock()
+
 	if eksClient := c.eksClientCache[cacheKey]; eksClient != nil {
 		return eksClient, nil
 	}
 
-	options := awsconfig.Options{
-		Region:          region,
-		RoleArn:         roleArn,
-		RoleSessionName: c.prog,
+	eksClient, errGen := c.eksGen(roleArn, region, c.prog)
+	if errGen != nil {
+		return nil, errGen
 	}
-	awsCfg, errCfg := awsconfig.AwsConfig(options)
-	if errCfg != nil {
-		return nil, fmt.Errorf("could not get aws config: %w", errCfg)
-	}
-
-	eksClient := eks.NewFromConfig(awsCfg.AwsConfig)
 
 	c.eksClientCache[cacheKey] = eksClient
 
