@@ -148,7 +148,7 @@ aws eks list-pod-identity-associations --cluster-name my-cluster
 
 In order to react quickly, the tool watches Kubernetes API server for any changes in Service Accounts, and takes action immediately.
 
-However to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically, with configurable period, 1min by default.
+However to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically (configurable; default 1min).
 
 Example of a ServiceAccount that causes the creation of an Association:
 
@@ -203,7 +203,7 @@ region | The region to make AWS API calls.
 cluster_name | Regular expression for the cluster name. If you want to specify one specific cluster, anchor it like this: `^my-cluster$`. An empty/undefined `cluster_name` will match ALL clusters in the region. NOTICE: When `self=true`, cluster_name is no longer a regex and must be specified as an exact cluster name.
 self | `self=true` means the tool must get API server credentials from local environment (`~/.kube/config` or in-cluster). Use `self=false` (default) when the tool must acquire Kubernetes credentials directly from each targeted cluster; it will need permission to perform `eks:ListClusters` and `eks:DescribeCluster` on the clusters; this is useful when the tool does not have local credentials (`~/.kube/config` or in-cluster). Set `self=true` to use local credentials (`~/.kube/config` or in-cluster) instead of generating Kubernetes credentials by querying `DescribeCluster`.
 annotation | The annotation used in Service Accounts that must be synced. Default is `eks.amazonaws.com/role-arn`.
-exclude_service_accounts | List of service accounts to exclude from synchronization. This option is useful if you want to exclude some Service Accounts from auto synchronization because they are managed elsewhere. Fields `name` and `namespace` are regular expressions. Empty/undefined field match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the Association from synchronization. The tool will skip creation and deletion of Association for a match.
+exclude_service_accounts | List of service accounts to exclude from synchronization. This option is useful if you want to exclude some Service Accounts from auto synchronization because they are managed elsewhere. Fields `name` and `namespace` are regular expressions. Empty/undefined fields match anything. Matching for exclusion requires BOTH fields (AND operation). A match removes the Service Account and the Association from synchronization. The tool will skip creation and deletion of Association for a match.
 restrict_roles | Define a list of roles that are restricted. A restricted role can only be used by Service Accounts that are allowed under the field `allow`. The tool will ignore a Service Account attempting to use a restricted role without being allowed. The roles are processed in the order listed under `restrict_roles`. Only the first matching role regex is used.
 pod_identity_association_tags | Tags added to Associations. Default is `managed-by=eks-auto-pod-id-assoc`. **CAUTION** You can safely change this field before running the tool against a cluster. However once the tool has created associations with tagging in a cluster, you should **NOT** modify the tagging afterwards. If you do change the tagging, the associations created with previous tagging will linger in the cluster and the tool will be unable to delete or to update the old associations. If you did change the tagging in a cluster under synchronization, and now you need to restore the tool operation, you must manually delete all associations lingering with previous tagging.
 max_concurrency | Limit concurrency level for EKS API operations (create/delete/describe) over multiple Associations. Default is 5.
@@ -277,7 +277,7 @@ Var | Default | Description
 LOG_LEVEL | info | Set log level: debug, info, warn, error
 LOG_JSON | false | Enable JSON logging.
 CONFIG_FILE | config.yaml | Path to configuration file.
-INTERVAL | 1m | Interval between reconciliations. In order to react quickly, the tool watches Kubernetes API server for any changes in Service Accounts, and takes action immediately. However to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically.
+INTERVAL | 1m | Interval between reconciliations. In order to react quickly, the tool watches the Kubernetes API server for any changes in Service Accounts, and takes action immediately. , to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically.
 RUN_ONCE | false | If enabled, the tool executes once and exits.
 DRY | true | If enabled, the tool does NOT modify anything on AWS EKS. If disabled, the tool will create and delete Associations on AWS EKS as needed to synchronize with Service Accounts.
 ADDR | :8080 | Listen address used for health check and metrics.
