@@ -13,7 +13,6 @@ import (
 	tagtypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/udhos/boilerplate/awsconfig"
 	"github.com/udhos/eks/eksclient"
-	"github.com/udhos/kube/kubeclient"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -68,19 +67,22 @@ type podIdentityAssociation struct {
 }
 
 type realClient struct {
-	prog            string
-	dry             bool
-	metrics         metrics
-	kubeClientCache map[string]*kubernetes.Clientset
+	prog    string
+	dry     bool
+	metrics metrics
+
+	kubeClientCache   map[string]*kubernetes.Clientset
+	kubeClientCacheMu sync.Mutex
 
 	eksClientCache   map[string]*eks.Client
 	eksClientCacheMu sync.Mutex
 
-	eksGen eksClientFactory
+	kubeGen kubeClientFactory
+	eksGen  eksClientFactory
 }
 
 func newRealClient(prog string, dry bool, metrics metrics,
-	eksGen eksClientFactory) *realClient {
+	eksGen eksClientFactory, kubeGen kubeClientFactory) *realClient {
 
 	return &realClient{
 		prog:            prog,
@@ -88,6 +90,7 @@ func newRealClient(prog string, dry bool, metrics metrics,
 		metrics:         metrics,
 		kubeClientCache: map[string]*kubernetes.Clientset{},
 		eksClientCache:  map[string]*eks.Client{},
+		kubeGen:         kubeGen,
 		eksGen:          eksGen,
 	}
 }
@@ -110,11 +113,14 @@ func (c *realClient) putKubeClientCache(self bool, roleArn, region,
 }
 
 func (c *realClient) getEKSClient(roleArn, region string) (*eks.Client, error) {
-
-	cacheKey := fmt.Sprintf("%s-%s", roleArn, region)
-
 	c.eksClientCacheMu.Lock()
 	defer c.eksClientCacheMu.Unlock()
+	return c.getEKSClientUnsafe(roleArn, region)
+}
+
+func (c *realClient) getEKSClientUnsafe(roleArn, region string) (*eks.Client, error) {
+
+	cacheKey := fmt.Sprintf("%s-%s", roleArn, region)
 
 	if eksClient := c.eksClientCache[cacheKey]; eksClient != nil {
 		return eksClient, nil
@@ -164,6 +170,9 @@ func (c *realClient) listEKSClusters(roleArn,
 func (c *realClient) getKubeClient(self bool, roleArn,
 	region, clusterName string) (*kubernetes.Clientset, error) {
 
+	c.kubeClientCacheMu.Lock()
+	defer c.kubeClientCacheMu.Unlock()
+
 	if clientset := c.getKubeClientCache(self, roleArn, region,
 		clusterName); clientset != nil {
 		return clientset, nil
@@ -171,7 +180,7 @@ func (c *realClient) getKubeClient(self bool, roleArn,
 
 	if self {
 		// we are running in-cluster or with .kube/config
-		clientset, err := kubeclient.New(kubeclient.Options{})
+		clientset, err := c.kubeGen()
 		if err == nil {
 			c.putKubeClientCache(self, roleArn, region, clusterName,
 				clientset)
@@ -182,7 +191,7 @@ func (c *realClient) getKubeClient(self bool, roleArn,
 	// do not attempt in-cluster or .kube/config,
 	// generate kube client directly from eks
 
-	clientEks, errEks := c.getEKSClient(roleArn, region)
+	clientEks, errEks := c.getEKSClientUnsafe(roleArn, region)
 	if errEks != nil {
 		return nil, fmt.Errorf("could not get EKS client: %w", errEks)
 	}

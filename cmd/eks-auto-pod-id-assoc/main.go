@@ -75,7 +75,8 @@ func main() {
 	met := newMetrics(metricsNamespace, latencyBucketsSeconds,
 		dogstatsdSampleRate, dogstatsdEnable)
 
-	app := newApplication(cfg, met, newRealClient(me, dry, met, generateEksClient))
+	app := newApplication(cfg, met, newRealClient(me, dry, met,
+		generateEksClient, generateKubeClient))
 
 	app.startServer(addr)
 

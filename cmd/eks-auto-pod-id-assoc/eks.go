@@ -5,6 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/udhos/boilerplate/awsconfig"
+	"github.com/udhos/kube/kubeclient"
+	"k8s.io/client-go/kubernetes"
 )
 
 type eksClientFactory func(roleArn, region, roleSessionName string) (*eks.Client, error)
@@ -23,4 +25,10 @@ func generateEksClient(roleArn, region, roleSessionName string) (*eks.Client, er
 	eksClient := eks.NewFromConfig(awsCfg.AwsConfig)
 
 	return eksClient, nil
+}
+
+type kubeClientFactory func() (*kubernetes.Clientset, error)
+
+func generateKubeClient() (*kubernetes.Clientset, error) {
+	return kubeclient.New(kubeclient.Options{})
 }
