@@ -2,6 +2,18 @@ apiVersion: v1
 entries:
   eks-auto-pod-id-assoc:
   - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2026-03-15T16:37:11.336396559-03:00"
+    description: Install eks-auto-pod-id-assoc on Kubernetes
+    digest: 1cdd5ad4b25b93efe3fa8c0be9462175b69a5f80e3a189beb2841cb877adc8be
+    name: eks-auto-pod-id-assoc
+    sources:
+    - https://github.com/udhos/eks-auto-pod-id-assoc
+    type: application
+    urls:
+    - https://udhos.github.io/eks-auto-pod-id-assoc/eks-auto-pod-id-assoc-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
     appVersion: 0.2.2
     created: "2026-03-13T20:41:11.061863634-03:00"
     description: Install eks-auto-pod-id-assoc on Kubernetes
@@ -145,4 +157,4 @@ entries:
     urls:
     - https://udhos.github.io/eks-auto-pod-id-assoc/eks-auto-pod-id-assoc-0.0.5.tgz
     version: 0.0.5
-generated: "2026-03-13T20:41:11.061430717-03:00"
+generated: "2026-03-15T16:37:11.3352453-03:00"
