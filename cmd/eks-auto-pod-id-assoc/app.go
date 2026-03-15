@@ -51,8 +51,6 @@ func (a *application) run() {
 	a.updateInformers(clusterList)
 
 	a.reconcileClusters(clusterList)
-
-	dumpClusters(clusterList, "reconciled clusters:")
 }
 
 func (a *application) updateInformers(clusterList []cluster) {
