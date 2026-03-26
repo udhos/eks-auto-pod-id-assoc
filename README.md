@@ -277,7 +277,7 @@ Var | Default | Description
 LOG_LEVEL | info | Set log level: debug, info, warn, error
 LOG_JSON | false | Enable JSON logging.
 CONFIG_FILE | config.yaml | Path to configuration file.
-INTERVAL | 1m | Interval between reconciliations. In order to react quickly, the tool watches the Kubernetes API server for any changes in Service Accounts, and takes action immediately. , to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically.
+INTERVAL | 1m | Interval between reconciliations. In order to react quickly, the tool watches the Kubernetes API server for any changes in Service Accounts, and takes action immediately. However, to reconcile changes applied to EKS Pod Identity Associations, the tool queries the EKS API periodically.
 RUN_ONCE | false | If enabled, the tool executes once and exits.
 DRY | true | If enabled, the tool does NOT modify anything on AWS EKS. If disabled, the tool will create and delete Associations on AWS EKS as needed to synchronize with Service Accounts.
 ADDR | :8080 | Listen address used for health check and metrics.
