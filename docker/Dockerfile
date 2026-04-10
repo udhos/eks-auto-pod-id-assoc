@@ -1,20 +1,22 @@
 # STEP 1 build executable binary
 
 FROM golang:1.26.2-alpine3.23 AS builder
-
-RUN apk update
-RUN apk add git
+RUN apk add --no-cache git
 
 # Create appuser on builder image
 RUN adduser -D -g '' appuser
 
-COPY ./cmd/ /tmp/app/cmd
-COPY go.* /tmp/app/
 WORKDIR /tmp/app
-RUN go mod tidy
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY cmd ./cmd
+
 RUN go env -w CGO_ENABLED=0
 RUN go build -o /tmp/eks-auto-pod-id-assoc github.com/udhos/eks-auto-pod-id-assoc/cmd/eks-auto-pod-id-assoc
-
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -o /tmp/eks-auto-pod-id-assoc ./cmd/eks-auto-pod-id-assoc
 #
 # STEP 2 build a small image from alpine
 #
