@@ -9,14 +9,11 @@ RUN adduser -D -g '' appuser
 WORKDIR /tmp/app
 
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod go mod download
-COPY cmd ./cmd
+RUN go mod download
+COPY ./cmd ./cmd
 
 RUN go env -w CGO_ENABLED=0
-RUN go build -o /tmp/eks-auto-pod-id-assoc github.com/udhos/eks-auto-pod-id-assoc/cmd/eks-auto-pod-id-assoc
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go build -o /tmp/eks-auto-pod-id-assoc ./cmd/eks-auto-pod-id-assoc
+RUN go build -o /tmp/eks-auto-pod-id-assoc ./cmd/eks-auto-pod-id-assoc
 #
 # STEP 2 build a small image from alpine
 #
