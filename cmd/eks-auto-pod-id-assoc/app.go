@@ -124,6 +124,10 @@ func (a *application) updateInformers(clusterList []cluster) {
 
 func dumpClusters(clusterList []cluster, label string) {
 
+	if !logEmitDebug() {
+		return
+	}
+
 	// slog by default writes to stderr, so we use it here.
 	// however if slog output is changed, we would be out of sync.
 	out := os.Stderr

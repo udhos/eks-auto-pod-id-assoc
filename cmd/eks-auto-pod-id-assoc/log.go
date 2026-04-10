@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -25,6 +26,10 @@ func setupLogging(levelStr string, isJSON bool) {
 	}
 
 	// Otherwise: stay with the default behavior.
+}
+
+func logEmitDebug() bool {
+	return slog.Default().Enabled(context.Background(), slog.LevelDebug)
 }
 
 func getLevel(s string) slog.Level {
