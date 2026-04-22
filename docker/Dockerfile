@@ -19,7 +19,7 @@ RUN go build -o /tmp/eks-auto-pod-id-assoc ./cmd/eks-auto-pod-id-assoc
 #
 # curl: https://security.alpinelinux.org/srcpkg/curl
 #
-FROM alpine:3.23.3
+FROM alpine:3.23.4
 COPY --from=builder /tmp/eks-auto-pod-id-assoc /bin/eks-auto-pod-id-assoc
 #RUN apk add curl=8.1.2-r0 libcrypto3=3.1.0-r4 libssl3=3.1.0-r4
 RUN apk update && \
