@@ -1,6 +1,6 @@
 # STEP 1 build executable binary
 
-FROM golang:1.26.2-alpine3.23 AS builder
+FROM golang:1.26.3-alpine3.23 AS builder
 RUN apk add --no-cache git
 
 # Create appuser on builder image
